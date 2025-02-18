@@ -3,4 +3,4 @@ from django.http import HttpResponse
 # Create your views here.
 
 def hello(req):
-    return HttpResponse("Welcome to the Messaging App!")
+    return render(req,"sign-up.html")
