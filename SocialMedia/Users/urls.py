@@ -18,5 +18,6 @@ Including another URLconf
 from django.urls import path, include
 from . import views
 urlpatterns = [
-    path('',views.hello,name="home"),
+    path('signup/',views.handle_signup_request,name="signup"),
+    path('login/',views.handle_login_request,name="login")
 ]
