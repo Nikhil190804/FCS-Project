@@ -19,5 +19,6 @@ from django.urls import path, include
 from . import views
 urlpatterns = [
     path('signup/',views.handle_signup_request,name="signup"),
-    path('login/',views.handle_login_request,name="login")
+    path('login/',views.handle_login_request,name="login"),
+
 ]
