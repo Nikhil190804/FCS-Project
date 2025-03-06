@@ -13,8 +13,6 @@ def validate_user(username,password):
         return False
 
 
-
-
 def handle_signup_request(request):
     if(request.method == "POST"):
         username = request.POST.get("username")

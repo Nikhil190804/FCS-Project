@@ -1,0 +1,87 @@
+/* Reset default styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: Arial, sans-serif;
+}
+
+/* Body styles */
+body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 100vh;
+    background: linear-gradient(135deg, #6a11cb, #b3b6bc);
+    color: white;
+    text-align: center;
+}
+
+/* Header styles */
+header {
+    width: 100%;
+    background: rgba(0, 0, 0, 0.2);
+    padding: 15px 0;
+    font-size: 1.8rem;
+    font-weight: bold;
+}
+
+/* Main content */
+main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+/* Heading styles */
+h2 {
+    font-size: 2rem;
+    margin-bottom: 20px;
+}
+
+/* Buttons container */
+.buttons {
+    display: flex;
+    gap: 20px;
+    margin-top: 20px;
+}
+
+/* Button styles */
+.btn {
+    text-decoration: none;
+    color: white;
+    font-size: 1.2rem;
+    padding: 12px 30px;
+    border-radius: 25px;
+    transition: 0.3s;
+    font-weight: bold;
+    display: inline-block;
+}
+
+/* Login button */
+.login {
+    background: #ff416c;
+}
+
+/* Signup button */
+.signup {
+    background: #2ecc71;
+}
+
+/* Hover effects */
+.btn:hover {
+    transform: scale(1.1);
+    opacity: 0.9;
+}
+
+/* Footer */
+footer {
+    width: 100%;
+    background: rgba(0, 0, 0, 0.2);
+    padding: 10px 0;
+    font-size: 1rem;
+}
