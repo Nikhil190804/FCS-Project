@@ -3,6 +3,8 @@ from django.http import HttpResponse
 from .models import User
 from django.contrib.auth.hashers import make_password, check_password
 # Create your views here.
+from django.contrib.admin.views.decorators import staff_member_required
+from django.contrib import messages
 
 
 def validate_user(username,password):
@@ -12,8 +14,21 @@ def validate_user(username,password):
     else:
         return False
 
+@staff_member_required
+def reject_user(request, user_id):
+    user = User.objects.get(id=user_id)
+    user.is_active = False
+    user.save()
+    messages.success(request, "User rejected successfully.")
+    return render('/admin/auth/user/')
 
-
+@staff_member_required
+def verify_user(request, user_id):
+    user = User.objects.get(id=user_id)
+    user.is_active = True
+    user.save()
+    messages.success(request, "User verified successfully.")
+    return render('/admin/auth/user/')
 
 def handle_signup_request(request):
     if(request.method == "POST"):

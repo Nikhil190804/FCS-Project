@@ -17,7 +17,10 @@ Including another URLconf
 
 from django.urls import path, include
 from . import views
+from .views import reject_user, verify_user
 urlpatterns = [
     path('signup/',views.handle_signup_request,name="signup"),
-    path('login/',views.handle_login_request,name="login")
+    path('login/',views.handle_login_request,name="login"),
+    path('reject/<int:user_id>/', reject_user, name='reject_user'),
+    path('verify/<int:user_id>/', verify_user, name='verify_user'),
 ]
