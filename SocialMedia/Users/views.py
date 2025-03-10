@@ -8,6 +8,8 @@ from django.core.validators import EmailValidator
 import secrets
 
 # Create your views here.
+from django.contrib.admin.views.decorators import staff_member_required
+from django.contrib import messages
 
 
 def validate_user(username,password):
@@ -16,6 +18,7 @@ def validate_user(username,password):
         return True
     else:
         return False
+
 
 def validate_email(email):
     try:
@@ -50,8 +53,7 @@ def generate_hashed_otp(length):
 
     hashed_otp = make_password(OTP)
     return hashed_otp
-
-    
+  
 
 def handle_signup_request(request):
     if(request.method == "POST"):
@@ -101,3 +103,20 @@ def handle_login_request(request):
 
     else:
         return render(request,"Users/login.html")
+      
+      
+@staff_member_required
+def reject_user(request, user_id):
+    user = User.objects.get(id=user_id)
+    user.is_active = False
+    user.save()
+    messages.success(request, "User rejected successfully.")
+    return render('/admin/auth/user/')
+  
+@staff_member_required
+def verify_user(request, user_id):
+    user = User.objects.get(id=user_id)
+    user.is_active = True
+    user.save()
+    messages.success(request, "User verified successfully.")
+    return render('/admin/auth/user/')
