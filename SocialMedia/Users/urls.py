@@ -20,5 +20,6 @@ from . import views
 urlpatterns = [
     path('signup/',views.handle_signup_request,name="signup"),
     path('login/',views.handle_login_request,name="login"),
+    path('otp/',views.otp,name="otp"),
 
 ]
