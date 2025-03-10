@@ -21,7 +21,7 @@ def reject_user(request, user_id):
     user.save()
     messages.success(request, "User rejected successfully.")
     return render('/admin/auth/user/')
-
+  
 @staff_member_required
 def verify_user(request, user_id):
     user = User.objects.get(id=user_id)
@@ -29,7 +29,7 @@ def verify_user(request, user_id):
     user.save()
     messages.success(request, "User verified successfully.")
     return render('/admin/auth/user/')
-
+  
 def handle_signup_request(request):
     if(request.method == "POST"):
         username = request.POST.get("username")
