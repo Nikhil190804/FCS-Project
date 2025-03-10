@@ -5,20 +5,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sign Up</title>
+    <title>Sign Up: OTP Verification</title>
     <link rel="stylesheet" href="{% static 'Users/sign_up.css' %}">
 
 </head>
 <body>
     <div class="container">
-        <h2>Sign Up </h2>
+        <h2>Verify OTP </h2>
         <form method="POST" enctype="multipart/form-data">
             {% csrf_token %}
-            <input type="text" name="username" placeholder="Username" required>
-            <input type="email" name="email" placeholder="Email" required>
-            <input type="text" name="phone_number" placeholder="Phone Number" required>
-            <input type="password" name="password" placeholder="Password" required>
-            <button type="submit">Sign Up</button>
+            <input type="password" name="otp" placeholder="OTP" required>
+            <button type="submit">Verify OTP</button>
         </form>
     </div>
     {% if error %}
