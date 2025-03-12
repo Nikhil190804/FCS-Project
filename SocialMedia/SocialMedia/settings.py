@@ -133,5 +133,12 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
-# ENV VARIABLES
-RESEND_API_KEY = "re_FNUTiSin_GSF5kRS2wfJRyR8YGmSHHtch"
+# EMAIL SETTINGS
+
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_HOST = "smtp.gmail.com"  # Use Gmail SMTP server
+EMAIL_PORT = 587  # Use 465 for SSL or 587 for TLS
+EMAIL_USE_TLS = True  # Set to False if using SSL (port 465)
+EMAIL_HOST_USER = "the404s.fcs@gmail.com"
+EMAIL_HOST_PASSWORD = "xevy dlww thky aomt"  # Use an app password (not your real password!)
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER

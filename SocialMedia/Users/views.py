@@ -6,6 +6,8 @@ from django.contrib.auth.hashers import make_password, check_password
 from django.core.exceptions import ValidationError
 from django.core.validators import EmailValidator
 import secrets
+from django.core.exceptions import ObjectDoesNotExist
+from django.core.mail import send_mail
 
 # Create your views here.
 from django.contrib.admin.views.decorators import staff_member_required
@@ -13,11 +15,13 @@ from django.contrib import messages
 
 
 def validate_user(username,password):
-    user = User.objects.get(username=username)  
-    if check_password(password, user.password_hash):  
-        return True
-    else:
-        return False
+    try:
+        user = User.objects.get(username=username)  
+        if check_password(password, user.password_hash):  
+            return True,user
+        return False ,None
+    except ObjectDoesNotExist:  
+        return False,None
 
 
 def validate_email(email):
@@ -36,24 +40,34 @@ def otp(request):
         entered_otp = request.POST.get("otp")
         print(user_data)
         print(entered_otp)
-        otp_hashed = user_data["otp_hashed"]
-        if check_password(entered_otp, otp_hashed):  
-            return HttpResponse("coolll")
+        otp = user_data["otp"]
+        if entered_otp==otp:  
+            return redirect("Users:create_profile")
         else:
             return render(request,"Users/otp.html",{"error":"Invalid OTP!!!"})
     else:
         return render(request,"Users/otp.html")
 
 
-def generate_hashed_otp(length):
+def generate_otp(length):
     OTP=""
     for i in range(length):
         OTP+=str(secrets.randbelow(10))
     print(OTP)
-
-    hashed_otp = make_password(OTP)
-    return hashed_otp
+    return OTP
   
+
+def send_otp_mail(OTP,email):
+    subject = "Your OTP Code For SocialMedia"
+    message = f"Your OTP code is: {OTP}"
+    from_email = "the404s.fcs@gmail.com"
+    recipient_list = [email]
+
+    try:
+        send_mail(subject, message, from_email, recipient_list)
+        return True,None
+    except Exception as e:
+        return False,str(e)
 
 def handle_signup_request(request):
     if(request.method == "POST"):
@@ -65,16 +79,22 @@ def handle_signup_request(request):
 
         isEmailValid = validate_email(email)
         if(isEmailValid==True):
-            otp_hashed = generate_hashed_otp(5)
+            otp = generate_otp(5)
             user_data = {
                 "username": username,
                 "email": email,
                 "phone_number": phone_number,
                 "hashed_password":hashed_password,
-                "otp_hashed":otp_hashed,
+                "otp":otp,
             }
             request.session["pending_user"] = user_data
-            return redirect("Users:otp")
+            isOTPMailSent,message = send_otp_mail(otp,email)
+            if(isOTPMailSent==True):
+                return redirect("Users:otp")
+            else:
+                print(message)
+                return HttpResponse("L lg gye dost!")
+            
         else:
             return render(request,"Users/sign-up.html",{"error": "Invalid email format!"})
 
@@ -89,22 +109,63 @@ def handle_login_request(request):
         password = request.POST.get("password")
 
         try:
-            is_present = validate_user(username,password)
+            is_present,user = validate_user(username,password)
             if(is_present == True):
                 print("bdia bhai")
-                return HttpResponse("User saved")
+                request.session["current_user"] = user.user_id
+                return redirect("Users:home")
             else:
                 print("wrong password")
-                return HttpResponse("User saved")
+                return HttpResponse("wrong password")
 
         except User.DoesNotExist:
             print("user not found")
-            return HttpResponse("User saved")
+            return HttpResponse("not found")
 
     else:
         return render(request,"Users/login.html")
       
-      
+
+def create_profile(request):
+    if(request.method == "POST"):
+        user_data = request.session.get("pending_user")
+        bio = request.POST.get("bio")
+        profile_picture = request.FILES.get('profile_picture')  
+        verification_doc = request.FILES.get('verification_doc')
+
+        username = user_data.get("username")
+        email = user_data.get("email")
+        phone_number = user_data.get("phone_number")
+        hashed_password = user_data.get("hashed_password")
+
+        user = User.objects.create(
+            username=username,
+            email=email,
+            phone_number=phone_number,
+            password_hash=hashed_password,
+            profile_picture=profile_picture,
+            bio=bio
+        )
+
+        if verification_doc:
+            user.verfication_document = verification_doc
+
+        user.save()
+        request.session.pop("pending_user", None)
+        request.session["current_user"] = user.user_id
+        return redirect("Users:home")
+        
+    else:
+        return render(request,"Users/confirm-sign-up.html")
+
+def home(request):
+    user_id=request.session["current_user"]
+    user = User.objects.get(user_id=user_id)  
+    context = {
+        "user_name": user.username, 
+    }
+    return render(request,"Users/home.html",context)
+
 @staff_member_required
 def reject_user(request, user_id):
     user = User.objects.get(id=user_id)

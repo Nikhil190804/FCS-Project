@@ -1,0 +1,35 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Profile</title>
+    <link rel="stylesheet" href="{% static 'Users/sign_up.css' %}">
+</head>
+<body>
+    <div class="container">
+        <h2>Create Profile</h2>
+        <form method="POST" enctype="multipart/form-data">
+            {% csrf_token %}
+            
+            <textarea name="bio" placeholder="Write something about yourself..."></textarea>
+            <br><br><br>
+            
+            <label for="profile_picture">Upload Profile Picture (Required):</label>
+            <input type="file" name="profile_picture" id="profile_picture" accept="image/*" required>
+            <br><br><br>
+
+            <label for="verification_doc">Upload Document for Admin Verification (Optional):</label>
+            <input type="file" name="verification_doc" id="verification_doc" accept=".pdf,.doc,.docx,.jpg,.png">
+
+            <button type="submit">Create Profile</button>
+        </form>
+    </div>
+
+    {% if error %}
+    <p style="color: red;">{{ error }}</p>
+    {% endif %}
+</body>
+</html>
