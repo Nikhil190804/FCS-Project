@@ -15,6 +15,8 @@ body {
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
     width: 300px;
     text-align: center;
+    width: fit-content;
+    height: fit-content;
 }
 
 input {
@@ -37,4 +39,8 @@ button {
 
 button:hover {
     background: #0056b3;
+}
+
+.simple-keyboard {
+    max-width: 850px;
 }
