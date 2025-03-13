@@ -1,6 +1,7 @@
 from django.shortcuts import render
 from django.http import HttpResponse
 from .models import User
+from .models import Friendship
 from django.shortcuts import redirect
 from django.contrib.auth.hashers import make_password, check_password
 from django.core.exceptions import ValidationError
@@ -8,6 +9,7 @@ from django.core.validators import EmailValidator
 import secrets
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.mail import send_mail
+from django.contrib import messages
 
 # Create your views here.
 from django.contrib.admin.views.decorators import staff_member_required
@@ -165,6 +167,32 @@ def home(request):
         "user_name": user.username, 
     }
     return render(request,"Users/home.html",context)
+
+
+def search_users(request):
+    current_user_id = request.session.get("current_user")
+    if(request.method == "POST"):
+        to_user_id = request.POST.get("to_user_id")
+        print(current_user_id)
+        print(to_user_id)
+        friend_request =  Friendship.objects.create( 
+            from_user = User.objects.get(user_id=current_user_id),
+            to_user = User.objects.get(user_id=to_user_id),
+        )
+        friend_request.save()
+        messages.success(request, "Request Sent!")
+        return redirect("Users:search_users")
+
+    
+    if(request.method == "GET"):
+        search_parameter = request.GET.get('query', None)
+        if(search_parameter !=None):
+            search_results = User.objects.filter(username__icontains=search_parameter).exclude(user_id=current_user_id)
+        else:
+            search_results=None
+
+        return render(request, 'Users/search_users.html', {'search_results': search_results})
+   
 
 @staff_member_required
 def reject_user(request, user_id):

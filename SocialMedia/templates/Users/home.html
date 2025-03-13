@@ -17,7 +17,7 @@
 
     <nav>
         <ul>
-            <li><a href="{% url 'Users:login' %}">Home</a></li>
+            <li><a href="{% url 'Users:home' %}">Home</a></li>
             <li><a href="{% url 'Users:login' %}">Settings</a></li>
         </ul>
     </nav>
@@ -26,7 +26,7 @@
         <div class="dashboard">
             <h2>Dashboard</h2>
             <div class="buttons">
-                <a href="{% url 'Users:login' %}" class="btn">🔍 Search Users</a>
+                <a href="{% url 'Users:search_users' %}" class="btn">🔍 Search Users</a>
                 <a href="{% url 'Users:login' %}" class="btn">💬 Your Messages</a>
             </div>
         </div>

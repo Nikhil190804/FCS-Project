@@ -7,6 +7,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sign Up: OTP Verification</title>
     <link rel="stylesheet" href="{% static 'Users/sign_up.css' %}">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/simple-keyboard@latest/build/css/index.css">
 
 </head>
 <body>
@@ -14,12 +15,15 @@
         <h2>Verify OTP </h2>
         <form method="POST" enctype="multipart/form-data">
             {% csrf_token %}
-            <input type="password" name="otp" placeholder="OTP" required>
+            <input class="input" placeholder="OTP" type="password" name="otp" required>
+	        <div class="simple-keyboard"></div>
             <button type="submit">Verify OTP</button>
         </form>
     </div>
     {% if error %}
     <p style="color: red;">{{ error }}</p>
     {% endif %}
+    <script src="https://cdn.jsdelivr.net/npm/simple-keyboard@latest/build/index.js"></script>
+    <script src="{% static 'Users/otp.js' %}"></script>
 </body>
 </html>

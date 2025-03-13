@@ -1,0 +1,57 @@
+{% load static %} 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Search Users</title>
+    <link rel="stylesheet" href="{% static 'Users/search_users.css' %}">
+</head>
+<body>
+    <div class="container">
+        <form method="GET" action="{% url 'Users:search_users' %}" class="search-form">
+            <input type="text" name="query" placeholder="Search for users..." required>
+            <button type="submit">Search</button>
+        </form>
+
+
+        {% if search_results %}
+        <div class="user-list">
+            {% for user in search_results %}
+            <div class="user-card">
+                <img src="{{ user.profile_picture.url }}" alt="Profile Picture">
+                <p>{{ user.username }}</p>
+                <form method="POST" action="{% url 'Users:search_users' %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="to_user_id" value="{{ user.user_id }}">
+                    <button type="submit">Send Friend Request</button>
+                </form>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        {% if messages %}
+        <div id="toast">
+            {% for message in messages %}
+                {{ message }}
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+
+
+
+    <script>
+        window.onload = function() {
+            let toast = document.getElementById("toast");
+            if (toast) {
+                toast.style.display = "block";
+                setTimeout(() => {
+                    toast.style.display = "none";
+                }, 5000);
+            }
+        };
+    </script>
+</body>
+</html>
