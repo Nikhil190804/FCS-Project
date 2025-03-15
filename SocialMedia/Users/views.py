@@ -194,6 +194,23 @@ def search_users(request):
         return render(request, 'Users/search_users.html', {'search_results': search_results})
    
 
+def show_friend_requests(request):
+    if(request.method == "POST"):
+        friends_id = request.POST.get("request_id")
+        action = request.POST.get("action")
+        friend_request = Friendship.objects.get(id=friends_id)
+        if(action=="accept"):
+            friend_request.status = "accepted"
+        else:
+            friend_request.status = "declined"
+        friend_request.save()
+        return HttpResponse("done !")
+        
+    else:
+        current_user_id = request.session.get("current_user")
+        friend_requests = Friendship.objects.filter(to_user_id=current_user_id, status='pending')
+        return render(request,'Users/friend_requests.html',{"friend_requests":friend_requests})
+
 @staff_member_required
 def reject_user(request, user_id):
     user = User.objects.get(id=user_id)

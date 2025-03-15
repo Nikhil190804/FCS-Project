@@ -25,6 +25,8 @@ urlpatterns = [
     path('create_profile/',views.create_profile,name="create_profile"),
     path('home/',views.home,name="home"),
     path('search_users/',views.search_users,name="search_users"),
+    path('show_friend_requests/',views.show_friend_requests,name="show_friend_requests"),
+
     
     
 

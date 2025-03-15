@@ -13,6 +13,9 @@
         <div class="welcome">
             Welcome, <span>{{ user_name }}</span>
         </div>
+        <div class="notifications" >
+            <a class="notifications" href="{% url 'Users:show_friend_requests' %}">📨 Friend Requests</a>
+        </div>
     </header>
 
     <nav>

@@ -1,0 +1,36 @@
+{% load static %} 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Friend Requests</title>
+    <link rel="stylesheet" href="{% static 'Users/friend_requests.css' %}">
+</head>
+<body>
+    <div class="container">
+        <a href="{% url 'Users:home' %}" class="home-link">Home</a>
+        <h2>Friend Requests</h2>
+
+        {% if friend_requests %}
+        <div class="user-list">
+            {% for request in friend_requests %}
+            <div class="user-card">
+                <img src="{{ request.from_user.profile_picture.url }}" alt="Profile Picture">
+                <p>{{ request.from_user.username }}</p>
+                <p>Sent on: {{ request.created_at }}</p>
+                <form method="POST" action="{% url 'Users:show_friend_requests' %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="request_id" value="{{ request.id }}">
+                    <button type="submit" name="action" value="accept" class="accept-btn">✔</button>
+                    <button type="submit" name="action" value="reject" class="reject-btn">✖</button>
+                </form>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="no-requests">No friend requests</p>
+        {% endif %}
+    </div>
+</body>
+</html>
