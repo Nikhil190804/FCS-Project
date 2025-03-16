@@ -1,0 +1,25 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your Messages</title>
+    <link rel="stylesheet" href="{% static 'Users/messages.css' %}">
+</head>
+<body>
+
+    <div id="messages_container">
+        {% if message_data %}
+            <!-- Placeholder for future message preview & replies -->
+            <div id="messages_preview"></div>
+        {% else %}
+            <div id="no_messages">
+                <a href="{% url 'Users:start_conversation' %}" id="start_conversation">No messages yet! Start a new conversation</a>
+            </div>
+        {% endif %}
+    </div>
+
+</body>
+</html>

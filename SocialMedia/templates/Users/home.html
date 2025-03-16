@@ -7,6 +7,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Home</title>
     <link rel="stylesheet" href="{% static 'Users/home.css' %}">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/simple-keyboard@latest/build/css/index.css">
 </head>
 <body>
     <header>
@@ -21,7 +22,7 @@
     <nav>
         <ul>
             <li><a href="{% url 'Users:home' %}">Home</a></li>
-            <li><a href="{% url 'Users:login' %}">Settings</a></li>
+            <li><a href="{% url 'Users:settings' %}">Settings</a></li>
         </ul>
     </nav>
 
@@ -30,7 +31,7 @@
             <h2>Dashboard</h2>
             <div class="buttons">
                 <a href="{% url 'Users:search_users' %}" class="btn">🔍 Search Users</a>
-                <a href="{% url 'Users:login' %}" class="btn">💬 Your Messages</a>
+                <a href="{% url 'Users:messages' %}" class="btn">💬 Your Messages</a>
             </div>
         </div>
     </main>

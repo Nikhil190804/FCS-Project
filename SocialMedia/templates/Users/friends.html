@@ -1,0 +1,34 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>People You Can Talk To</title>
+    <link rel="stylesheet" href="{% static 'Users/friends.css' %}">
+</head>
+<body>
+
+    <div id="people_container">
+        <h2 id="heading">People You Can Talk To</h2>
+
+        {% if friends_data %}
+            <div id="people_list">
+                {% for person in friends_data %}
+                    <div id="person_card">
+                        <img id="profile_pic" src="{{ person.profile_picture.url }}" alt="{{ person.username }}'s Profile">
+                        <p id="username">{{ person.username }}</p>
+                        <a href="{% url 'Users:login' %}" id="send_message_btn">Send Message</a>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p id="no_friends">Connect With Some People First!</p>
+        {% endif %}
+
+        <a href="{% url 'Users:home' %}" id="go_home_btn">Go Home</a>
+    </div>
+
+</body>
+</html>

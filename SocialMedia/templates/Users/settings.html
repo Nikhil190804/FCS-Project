@@ -1,0 +1,70 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Settings</title>
+    <link rel="stylesheet" href="{% static 'Users/settings.css' %}" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/simple-keyboard@latest/build/css/index.css">
+  </head>
+  <body>
+    <div class="settings-container">
+      {% if profile %}
+      <div class="card">
+        <div class="profile">
+          <img
+            src="{{ user.profile_picture.url }}"
+            alt="Profile Picture"
+            class="profile-pic"
+          />
+          <div class="profile-info">
+            <h2>@{{ user.username }}</h2>
+            <p><strong>Joined:</strong> {{ user.created_at|date:"F d, Y" }}</p>
+            <p><strong>Bio:</strong> {{ user.bio|default:"No bio added." }}</p>
+            <p>
+              <strong>Verification:</strong>
+              {% if user.is_verified %} ✅ Verified {% else %} ❌ Not Verified
+              {% endif %}
+            </p>
+          </div>
+        </div>
+      </div>
+      {% endif %} {% if action %}
+      <div class="actions">
+        <a href="{% url 'Users:change_password' %}" class="btn"
+          >Change Your Password</a
+        >
+      </div>
+      {% endif %}
+
+
+    {% if otp %}
+    <div class="change-password-card">
+      <h2>Change Password</h2>
+      <form method="POST" action="{% url 'Users:change_password' %}">
+        {% csrf_token %}
+        <label for="new_password">New Password:</label>
+        <input type="password" id="new_password" name="new_password" required />
+        <span>OTP Has been Sent To Your Registered Email !</span>
+        <input class="input" placeholder="OTP" type="password" name="otp" required>
+        <div class="simple-keyboard"></div>
+        <button type="submit" class="password-btn">Update Password</button>
+      </form>
+    </div>
+    {% endif %} 
+
+    {% if message %}
+    <div class="message-card">
+      <p><strong>Status:</strong> {{ message }}</p>
+      <a href="{% url 'Users:home' %}" class="btn"
+          >Home</a>
+    </div>
+    {% endif %}
+    </div>
+
+    
+    <script src="https://cdn.jsdelivr.net/npm/simple-keyboard@latest/build/index.js"></script>
+    <script src="{% static 'Users/settings.js' %}"></script>
+  </body>
+</html>
