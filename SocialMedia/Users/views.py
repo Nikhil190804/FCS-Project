@@ -9,11 +9,10 @@ from django.core.validators import EmailValidator
 import secrets
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.mail import send_mail
-from django.contrib import messages
-
+from django.contrib import messages as mem
+from django.db.models import Q
 # Create your views here.
 from django.contrib.admin.views.decorators import staff_member_required
-from django.contrib import messages
 
 
 def validate_user(username,password):
@@ -180,7 +179,7 @@ def search_users(request):
             to_user = User.objects.get(user_id=to_user_id),
         )
         friend_request.save()
-        messages.success(request, "Request Sent!")
+        mem.success(request, "Request Sent!")
         return redirect("Users:search_users")
 
     
@@ -210,6 +209,66 @@ def show_friend_requests(request):
         current_user_id = request.session.get("current_user")
         friend_requests = Friendship.objects.filter(to_user_id=current_user_id, status='pending')
         return render(request,'Users/friend_requests.html',{"friend_requests":friend_requests})
+    
+
+def settings(request):
+        current_user_id = request.session.get("current_user")
+        user = User.objects.get(user_id=current_user_id)
+        return render(request,'Users/settings.html',{"user":user, "profile":True, "action":True})
+
+def change_password(request):
+    if(request.method=="POST"):
+        print("ho gya ")
+        current_user_id = request.session.get("current_user")
+        user = User.objects.get(user_id=current_user_id)
+        otp = request.session.get("otp")
+        user_entered_password = request.POST.get("new_password")
+        user_entered_otp = request.POST.get("otp")
+
+        if(otp==user_entered_otp):
+            hashed_password = make_password(user_entered_password)
+            user.password_hash=hashed_password
+            user.save()
+            request.session.pop("otp", None)
+            return render(request,'Users/settings.html',{ "profile":False, "action":False, "otp":False,"message":"Password Updated !"})
+
+        else:
+            return render(request,'Users/settings.html',{ "profile":False, "action":False, "otp":False,"message":"Wrong OTP!"})
+
+
+
+    else:
+
+        current_user_id = request.session.get("current_user")
+        user = User.objects.get(user_id=current_user_id)
+        otp = generate_otp(5)
+        isOTPMailSent,message = send_otp_mail(otp,user.email)
+        if(isOTPMailSent==True):
+            request.session["otp"] = otp
+            return render(request,'Users/settings.html',{ "profile":False, "action":False, "otp":True})
+        else:
+            print(message)
+            return HttpResponse("L lg gye dost!")
+
+
+def messages(request):
+    return render(request,'Users/messages.html',{ "message_data":False})
+
+
+def start_conversation(request):
+    current_user_id = request.session.get("current_user")
+    user = User.objects.get(pk=current_user_id)
+    friends = Friendship.objects.filter(
+            Q(from_user=user, status="accepted") | Q(to_user=user, status="accepted")
+    )
+    friends_data=[]
+    for friend in friends:
+        if(friend.to_user==user):
+            friends_data.append(friend.from_user)
+        else:
+            friends_data.append(friend.to_user)
+
+    return render(request,"Users/friends.html",{"friends_data":friends_data})
 
 @staff_member_required
 def reject_user(request, user_id):

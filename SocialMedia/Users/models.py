@@ -55,3 +55,41 @@ class Friendship(models.Model):
         elif unblocker == self.to_user:
             self.to_user_blocked = False
         self.save()
+
+
+
+class OnetoOneConversation(models.Model):
+    friendship = models.OneToOneField(
+        'Friendship', on_delete=models.CASCADE, related_name='conversation'
+    )
+    user_a = models.ForeignKey('User', on_delete=models.CASCADE, related_name='conversation_a')
+    user_b = models.ForeignKey('User', on_delete=models.CASCADE, related_name='conversation_b')
+
+    encrypted_aes_key_for_user_a = models.BinaryField()
+    encrypted_aes_key_for_user_b = models.BinaryField()  
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['user_a', 'user_b'], name='unique_onetoone_conversation')
+        ]
+
+    def __str__(self):
+        return f"Conversation: {self.user_a.username} ↔ {self.user_b.username}"
+
+
+
+
+class OnetoOneMessage(models.Model):
+    conversation = models.ForeignKey('OnetoOneConversation', on_delete=models.CASCADE, related_name='messages')
+    sender = models.ForeignKey('User', on_delete=models.CASCADE, related_name='sent_onetoone_messages')
+    receiver = models.ForeignKey('User', on_delete=models.CASCADE, related_name='received_onetoone_messages')
+
+    encrypted_message_content = models.BinaryField()  
+    encryption_iv = models.BinaryField()
+
+    sent_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Message from {self.sender.username} to {self.receiver.username}"

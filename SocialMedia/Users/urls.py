@@ -26,6 +26,11 @@ urlpatterns = [
     path('home/',views.home,name="home"),
     path('search_users/',views.search_users,name="search_users"),
     path('show_friend_requests/',views.show_friend_requests,name="show_friend_requests"),
+    path('settings/',views.settings,name="settings"),
+    path('change_password/',views.change_password,name="change_password"),
+    path('messages/',views.messages,name="messages"),
+    path('start_conversation/',views.start_conversation,name="start_conversation"),
+    
 
     
     
