@@ -1,0 +1,132 @@
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f4f4f4;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+
+.settings-container {
+    width: 90%;
+    max-width: 850px;
+}
+
+.card {
+    background: white;
+    padding: 50px;
+    border-radius: 18px;
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.25);
+    margin-bottom: 40px;
+}
+
+.profile {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.profile-info {
+    flex-grow: 1;
+    margin-left: 50px;
+    padding-right: 60px;
+}
+
+.profile-pic {
+    width: 200px;
+    height: 200px;
+    border-radius: 50%;
+    object-fit: cover;
+    margin-left: 50px;
+}
+
+.profile-info h2 {
+    margin: 0;
+    font-size: 3em;
+}
+
+.profile-info p {
+    margin: 20px 0;
+    font-size: 1.8em;
+    color: #222;
+}
+
+.actions {
+    text-align: center;
+    margin-top: 40px;
+}
+
+.btn {
+    display: inline-block;
+    padding: 20px 32px;
+    font-size: 1.8em;
+    background-color: #007bff;
+    color: white;
+    text-decoration: none;
+    border-radius: 12px;
+    transition: 0.3s;
+}
+
+.btn:hover {
+    background-color: #0056b3;
+}
+
+.change-password-card {
+    background: #ffffff;
+    padding: 40px;
+    border-radius: 12px;
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+    margin-bottom: 30px;
+}
+
+.change-password-card h2 {
+    font-size: 2em;
+    margin-bottom: 20px;
+}
+
+.change-password-card label {
+    display: block;
+    font-size: 1.2em;
+    margin: 10px 0 5px;
+}
+
+.change-password-card input {
+    width: 100%;
+    padding: 10px;
+    font-size: 1.1em;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    margin-bottom: 15px;
+}
+
+.change-password-card .simple-keyboard {
+    margin-top: 15px;
+}
+
+.message-card {
+    background: #fff8dc;
+    padding: 30px;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    text-align: center;
+    font-size: 1.3em;
+    font-weight: bold;
+    color: #333;
+}
+
+.password-btn {
+    display: inline-block;
+    padding: 15px 12px;
+    font-size: 1em;
+    background-color: #007bff;
+    color: white;
+    text-decoration: none;
+    border-radius: 12px;
+    transition: 0.3s;
+}
+
+.password-btn:hover {
+    background-color: #0056b3;
+}

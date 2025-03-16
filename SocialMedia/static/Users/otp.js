@@ -1,3 +1,8 @@
+document.addEventListener('keydown', function(event) {
+  event.preventDefault();  
+});
+
+
 let Keyboard = window.SimpleKeyboard.default;
 
 let keyboard = new Keyboard({

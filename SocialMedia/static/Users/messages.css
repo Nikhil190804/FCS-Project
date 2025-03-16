@@ -1,0 +1,47 @@
+
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f5f5f5;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+
+#messages_container {
+    width: 90%;
+    max-width: 500px;
+    background: white;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    border-radius: 10px;
+    padding: 20px;
+    text-align: center;
+}
+
+
+#messages_preview {
+    min-height: 300px;
+}
+
+#no_messages {
+    padding: 20px;
+    font-size: 16px;
+    color: #333;
+}
+
+#start_conversation {
+    display: inline-block;
+    text-decoration: none;
+    background-color: #25D366;
+    color: white;
+    padding: 10px 20px;
+    border-radius: 5px;
+    font-weight: bold;
+    transition: 0.3s ease-in-out;
+}
+
+#start_conversation:hover {
+    background-color: #1db954;
+}
