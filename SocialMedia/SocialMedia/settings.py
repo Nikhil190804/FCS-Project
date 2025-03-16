@@ -48,6 +48,8 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'Users.middleware.AuthenticationMiddleware',
+    'Users.middleware.SignupProcessMiddleware',
 ]
 
 ROOT_URLCONF = 'SocialMedia.urls'
@@ -116,6 +118,17 @@ TIME_ZONE = 'UTC'
 USE_I18N = True
 
 USE_TZ = True
+
+
+# Session Based Settings
+
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True
+SESSION_ENGINE = "django.contrib.sessions.backends.signed_cookies"  # Use cookie-based sessions
+SESSION_COOKIE_AGE = None  # Expires when the browser is closed
+SESSION_COOKIE_SECURE = True  # Allow sessions only over HTTPS
+SESSION_COOKIE_HTTPONLY = True  # Prevent JavaScript access to session cookies
+SESSION_COOKIE_SAMESITE = 'Lax'  # Protect against CSRF attacks
+
 
 
 # Static files (CSS, JavaScript, Images)

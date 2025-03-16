@@ -71,6 +71,8 @@ def send_otp_mail(OTP,email):
         return False,str(e)
 
 def handle_signup_request(request):
+    if "current_user" in request.session:  
+        return redirect("Users:home")
     if(request.method == "POST"):
         username = request.POST.get("username")
         email = request.POST.get("email")
@@ -105,6 +107,9 @@ def handle_signup_request(request):
 
 
 def handle_login_request(request):
+    if "current_user" in request.session:  
+        return redirect("Users:home")
+
     if(request.method == "POST"):
         username = request.POST.get("username")
         password = request.POST.get("password")
