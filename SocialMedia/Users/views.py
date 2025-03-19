@@ -1,7 +1,8 @@
 from django.shortcuts import render
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from .models import User
 from .models import Friendship
+from .models import *
 from django.shortcuts import redirect
 from django.contrib.auth.hashers import make_password, check_password
 from django.core.exceptions import ValidationError
@@ -11,9 +12,35 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.core.mail import send_mail
 from django.contrib import messages as mem
 from django.db.models import Q
+from Crypto.PublicKey import RSA
+from Crypto.Cipher import PKCS1_OAEP
+import base64
+from Crypto.Random import get_random_bytes
+from Crypto.Hash import SHA256
+import json
 # Create your views here.
 from django.contrib.admin.views.decorators import staff_member_required
 
+
+def generate_public_private_keys():
+    KEY = RSA.generate(2048)
+    private_key = KEY.export_key(pkcs=8)
+    public_key = KEY.public_key().export_key(format="PEM")
+
+    private_key_encoded = private_key.decode()
+    public_key_encoded = public_key.decode()
+
+    return public_key_encoded,private_key_encoded
+
+
+def encrypt_aes_key(aes_key,public_key):
+    public_key_decoded = RSA.import_key(public_key)
+    cipher = PKCS1_OAEP.new(public_key_decoded,hashAlgo=SHA256)
+    #aes_key_base64 = base64.b64encode(aes_key)  
+    encrypted_aes_key = cipher.encrypt(aes_key)
+
+    #encrypted_aes_key_encoded = base64.b64encode(encrypted_aes_key).decode()
+    return encrypted_aes_key
 
 def validate_user(username,password):
     try:
@@ -143,6 +170,7 @@ def create_profile(request):
         email = user_data.get("email")
         phone_number = user_data.get("phone_number")
         hashed_password = user_data.get("hashed_password")
+        public_key,private_key = generate_public_private_keys()
 
         user = User.objects.create(
             username=username,
@@ -150,7 +178,9 @@ def create_profile(request):
             phone_number=phone_number,
             password_hash=hashed_password,
             profile_picture=profile_picture,
-            bio=bio
+            bio=bio,
+            public_key=public_key,
+            private_key=private_key,
         )
 
         if verification_doc:
@@ -205,6 +235,20 @@ def show_friend_requests(request):
         friend_request = Friendship.objects.get(id=friends_id)
         if(action=="accept"):
             friend_request.status = "accepted"
+            AES_KEY = get_random_bytes(32)
+            public_key_user_a = friend_request.from_user.public_key
+            public_key_user_b = friend_request.to_user.public_key
+            aes_key_for_user_a = encrypt_aes_key(AES_KEY,public_key_user_a)
+            aes_key_for_user_b = encrypt_aes_key(AES_KEY,public_key_user_b)
+            conversation = OnetoOneConversation.objects.create(
+                friendship=friend_request,
+                user_a=friend_request.from_user,
+                user_b=friend_request.to_user,
+                encrypted_aes_key_for_user_a=aes_key_for_user_a,
+                encrypted_aes_key_for_user_b=aes_key_for_user_b,
+            )
+            conversation.save()
+            
         else:
             friend_request.status = "declined"
         friend_request.save()
@@ -263,17 +307,108 @@ def messages(request):
 def start_conversation(request):
     current_user_id = request.session.get("current_user")
     user = User.objects.get(pk=current_user_id)
-    friends = Friendship.objects.filter(
-            Q(from_user=user, status="accepted") | Q(to_user=user, status="accepted")
+    friends = OnetoOneConversation.objects.filter(
+            Q(user_a=user) | Q(user_b=user)
     )
     friends_data=[]
     for friend in friends:
-        if(friend.to_user==user):
-            friends_data.append(friend.from_user)
+        if(friend.user_a==user):
+            friends_data.append(friend.user_b)
         else:
-            friends_data.append(friend.to_user)
+            friends_data.append(friend.user_a)
 
     return render(request,"Users/friends.html",{"friends_data":friends_data})
+
+
+
+
+def send_one_to_one_message(request,reciever_id):
+    if(request.method=="POST"):
+        current_user_id = request.session.get("current_user")
+        sender_id = current_user_id
+        sender = User.objects.get(pk=current_user_id)
+        reciever = User.objects.get(pk=reciever_id)
+        conversation = OnetoOneConversation.objects.filter(
+            Q(user_a=sender_id,user_b=reciever_id) | Q(user_a=reciever_id,user_b=sender_id)
+        ).first()
+
+        if(conversation):
+            data = json.loads(request.body)
+            message_encrypted = base64.b64decode(data["encrypted_msg"])  # Convert Base64 to bytes
+            message_iv = base64.b64decode(data["iv"])  # Convert Base64 to bytes
+            new_message = OnetoOneMessage.objects.create(
+                conversation=conversation,
+                sender=sender,
+                receiver=reciever,
+                encrypted_message_content=message_encrypted,
+                encryption_iv=message_iv
+            )
+            new_message.save()
+            return HttpResponse("done",status=200)
+        
+        else:
+            return HttpResponse("Not your friend!", status=403)
+
+    else:
+
+        current_user_id = request.session.get("current_user")
+        sender_id = current_user_id
+        current_user = User.objects.get(pk=current_user_id)
+        reciever = User.objects.get(pk=reciever_id)
+        conversation = OnetoOneConversation.objects.filter(
+            Q(user_a=sender_id,user_b=reciever_id) | Q(user_a=reciever_id,user_b=sender_id)
+        ).first()
+
+        if(conversation):
+            old_messages = []
+            aes_current_user_version = None
+            current_user_public_key = current_user.public_key
+            current_user_private_key = current_user.private_key
+            if(conversation.user_a==current_user):
+                aes_current_user_version=conversation.encrypted_aes_key_for_user_a
+            else:
+                aes_current_user_version=conversation.encrypted_aes_key_for_user_b
+            base64_aes_key = base64.b64encode(aes_current_user_version).decode()
+            messages = OnetoOneMessage.objects.filter(conversation=conversation).order_by("sent_at")
+            for message in messages:
+                encrypted_msg_base64 = base64.b64encode(message.encrypted_message_content).decode('utf-8')
+                temp_msg = {}
+                temp_msg["message_encrypted"]=encrypted_msg_base64
+                temp_msg["sender"]=message.sender
+                temp_msg["reciever"]=message.receiver
+                temp_msg["time"]=message.sent_at
+                temp_msg["read"]=message.is_read
+                old_messages.append(temp_msg)
+
+            CONTEXT = {}
+            CONTEXT["friend"]=reciever
+            CONTEXT["messages"]=old_messages
+            CONTEXT["user"]=current_user
+            CONTEXT["USER_PUBLIC_KEY"]=current_user_public_key
+            CONTEXT["USER_PRIVATE_KEY"]=current_user_private_key
+            CONTEXT["AES_KEY_ENCRYPTED"]=base64_aes_key
+            
+            return render(request,"Users/one_to_one_message.html",CONTEXT )
+
+        else:
+            return HttpResponse("wrong ids!!")
+
+        user_a = User.objects.get(pk=sender_id)
+        user_b = User.objects.get(pk=reciever_id)
+
+        context = {
+        "friend": user_b,
+        "messages": [
+            {"sender": {"id": 1, "username": "You"}, "text": "Hey John!", "timestamp": "14:30", "read": True},
+            {"sender": {"id": 2, "username": "JohnDoe"}, "text": "Hey! How's irujhtyujtyjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjh ffffffffffff jnr teyntghrtytnj k4j5 k jhfy rujhtyujtyjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjh ffffffffffff jnr teyntghrtytnj k4j5 k jhfy t going?", "timestamp": "14:32", "read": True},
+            {"sender": {"id": 1, "username": "You"}, "text": "All good!tgrujhtyujtyjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjh ffffffffffff jnr teyntghrtytnj k4j5 k jhfyhjnghmnghjmnghjn rujhtyujtyjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjh ffffffffffff jnr teyntghrtytnj k4j5 k jhfy rujhtyujtyjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjh ffffffffffff jnr teyntghrtytnj k4j5 k jhfy rujhtyujtyjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjh ffffffffffff jnr teyntghrtytnj k4j5 k jhfy Working on Django.", "timestamp": "14:35", "read": False}
+        ],
+        "user": {"id": 1, "username": "You"}
+        }
+
+    return render(request,"Users/one_to_one_message.html",context )
+
+
 
 @staff_member_required
 def reject_user(request, user_id):

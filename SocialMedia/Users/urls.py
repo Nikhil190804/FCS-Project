@@ -30,6 +30,7 @@ urlpatterns = [
     path('change_password/',views.change_password,name="change_password"),
     path('messages/',views.messages,name="messages"),
     path('start_conversation/',views.start_conversation,name="start_conversation"),
+    path('send_one_to_one_message/<int:reciever_id>/',views.send_one_to_one_message, name='send_one_to_one_message'),
     
 
     

@@ -11,6 +11,10 @@ class User(models.Model):
     bio = models.TextField(blank=True, null=True)
     is_verified = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
+    public_key = models.TextField() 
+    private_key = models.TextField() 
+
+
     
     def __str__(self):
         return f"Hello I am {self.username}"
@@ -85,11 +89,11 @@ class OnetoOneMessage(models.Model):
     conversation = models.ForeignKey('OnetoOneConversation', on_delete=models.CASCADE, related_name='messages')
     sender = models.ForeignKey('User', on_delete=models.CASCADE, related_name='sent_onetoone_messages')
     receiver = models.ForeignKey('User', on_delete=models.CASCADE, related_name='received_onetoone_messages')
-
     encrypted_message_content = models.BinaryField()  
-    encryption_iv = models.BinaryField()
+    encryption_iv = models.BinaryField(default=1)  
 
     sent_at = models.DateTimeField(auto_now_add=True)
+    is_read = models.BooleanField(default=False) 
 
     def __str__(self):
         return f"Message from {self.sender.username} to {self.receiver.username}"

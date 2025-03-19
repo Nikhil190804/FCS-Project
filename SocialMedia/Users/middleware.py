@@ -19,7 +19,8 @@ class AuthenticationMiddleware:
             reverse("Users:change_password"),
         ]
 
-        if ((request.path in protected_paths) and ("current_user" not in request.session)):
+
+        if ((request.path in protected_paths ) and ("current_user" not in request.session)):
             return redirect("Users:login")  
 
         return self.get_response(request)
