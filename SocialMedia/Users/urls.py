@@ -17,8 +17,8 @@ Including another URLconf
 
 from django.urls import path
 from django.contrib import admin
-from Users.views import verify_users, change_verification_status  # Absolute import
-import Users.views as views  # Avoid relative import issues
+from Users.views import verify_users, change_verification_status 
+import Users.views as views 
 urlpatterns = [
     path('signup/',views.handle_signup_request,name="signup"),
     path('login/',views.handle_login_request,name="login"),
