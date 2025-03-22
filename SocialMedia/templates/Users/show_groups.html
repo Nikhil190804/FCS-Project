@@ -1,0 +1,39 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your Groups</title>
+    <link rel="stylesheet" href="{% static 'Users/show_groups.css' %}">
+</head>
+<body>
+
+    <div id="group_container">
+        <h2 id="heading">Your Groups</h2>
+
+        {% if groups %}
+            <div id="group_list">
+                {% for group in groups %}
+                    <div class="group_card">
+                        <img class="group_profile_pic" src="{{ group.profile_picture.url }}" alt="{{ group.name }}'s Profile">
+                        <div class="group_info">
+                            <p class="group_name">{{ group.name }}</p>
+                        </div>
+                        <a href="{% url 'Users:login' %}" class="msg_send_btn">Chat</a>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p id="no_groups">You are not a part of any group!</p>
+        {% endif %}
+
+        <div class="action_buttons">
+            <a href="{% url 'Users:home' %}" class="back_btn">Back</a>
+            <a href="{% url 'Users:login' %}" class="create_group_btn">Create New Group</a>
+        </div>
+    </div>
+
+</body>
+</html>

@@ -34,9 +34,10 @@
             {% endfor %}
         </div>
 
-        <form id="chatForm" class="chat-footer">
+        <form id="chatForm" class="chat-footer" enctype="multipart/form-data">
             {% csrf_token %}
-            <input type="text" id="messageInput" name="message" placeholder="Type a message..." required>
+            <input type="text" id="messageInput" name="message" placeholder="Type a message..." >
+            <input type="file" id="fileInput" name="file">
             <button type="submit">Send</button>
         </form>
         
@@ -209,7 +210,9 @@
             event.preventDefault(); 
     
             const message = messageInput.value.trim();
-            if (!message){
+            const file_input = document.getElementById("fileInput");
+            const file = file_input.files[0];
+            if (!message && !file){
                 return;
             }
             console.log(message)
@@ -240,6 +243,7 @@
             const iv = encrypted_data["iv"];
             
             const url = "{% url 'Users:send_one_to_one_message' friend.user_id %}";
+            const formData = new FormData();
             const response = await fetch(url, {
                 method: 'POST',
                 headers: {

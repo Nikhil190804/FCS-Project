@@ -334,8 +334,8 @@ def send_one_to_one_message(request,reciever_id):
 
         if(conversation):
             data = json.loads(request.body)
-            message_encrypted = base64.b64decode(data["encrypted_msg"])  # Convert Base64 to bytes
-            message_iv = base64.b64decode(data["iv"])  # Convert Base64 to bytes
+            message_encrypted = base64.b64decode(data["encrypted_msg"])  
+            message_iv = base64.b64decode(data["iv"])  
             new_message = OnetoOneMessage.objects.create(
                 conversation=conversation,
                 sender=sender,
@@ -409,6 +409,18 @@ def send_one_to_one_message(request,reciever_id):
     return render(request,"Users/one_to_one_message.html",context )
 
 
+
+def group_messages(request):
+    current_user_id = request.session.get("current_user")
+    user = User.objects.get(pk=current_user_id)
+    if(user.is_verified==True):
+        user_joined_groups = GroupMember.objects.filter(user=user)
+        return render(request,"Users/show_groups.html")
+
+
+        return HttpResponse("done")
+    else:
+        return HttpResponse("You are not verified yet!")
 
 @staff_member_required
 def reject_user(request, user_id):
