@@ -32,8 +32,12 @@ urlpatterns = [
     path('messages/',views.messages,name="messages"),
     path('start_conversation/',views.start_conversation,name="start_conversation"),
     path('send_one_to_one_message/<int:reciever_id>/',views.send_one_to_one_message, name='send_one_to_one_message'),
+    path('group_messages/',views.group_messages,name="group_messages"),
+
+
     path("admin/verify_users/", verify_users, name="verify_users"),
     path("admin/verify/<int:user_id>/<str:status>/", change_verification_status, name="change_verification_status"),
     path('admin/', admin.site.urls),
     path('profile/', views.profile, name="profile"),
+
 ]
