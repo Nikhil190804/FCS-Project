@@ -21,6 +21,47 @@ import json
 # Create your views here.
 from django.contrib.admin.views.decorators import staff_member_required
 
+def profile(request):
+    return render(request, 'Users/profile.html')
+
+
+from django.contrib.admin.views.decorators import staff_member_required
+from django.shortcuts import render, get_object_or_404, redirect
+from .models import User
+from django.contrib import messages
+
+@staff_member_required
+def verify_users(request):
+    users = User.objects.filter(is_verified=False)  # Show only unverified users
+    return render(request, "verify_users.html", {"users": users})
+
+@staff_member_required
+def change_verification_status(request, user_id, status):
+    user = get_object_or_404(User, user_id=user_id)
+    user.is_verified = (status == "verify")
+    user.save()
+    
+    status_message = "verified" if user.is_verified else "unverified"
+    messages.success(request, f"User {user.username} has been {status_message}.")
+    return redirect("verify_users")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 def generate_public_private_keys():
     KEY = RSA.generate(2048)
@@ -422,18 +463,20 @@ def group_messages(request):
     else:
         return HttpResponse("You are not verified yet!")
 
-@staff_member_required
-def reject_user(request, user_id):
-    user = User.objects.get(id=user_id)
-    user.is_active = False
-    user.save()
-    messages.success(request, "User rejected successfully.")
-    return render('/admin/auth/user/')
+
+# @staff_member_required
+# def reject_user(request, user_id):
+#     user = User.objects.get(id=user_id)
+#     user.is_active = False
+#     user.save()
+#     messages.success(request, "User rejected successfully.")
+#     return render('/admin/auth/user/')
+
   
-@staff_member_required
-def verify_user(request, user_id):
-    user = User.objects.get(id=user_id)
-    user.is_active = True
-    user.save()
-    messages.success(request, "User verified successfully.")
-    return render('/admin/auth/user/')
+# @staff_member_required
+# def verify_user(request, user_id):
+#     user = User.objects.get(id=user_id)
+#     user.is_active = True
+#     user.save()
+#     messages.success(request, "User verified successfully.")
+#     return render('/admin/auth/user/')
