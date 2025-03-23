@@ -451,17 +451,130 @@ def send_one_to_one_message(request,reciever_id):
 
 
 
-def group_messages(request):
+def show_groups(request):
     current_user_id = request.session.get("current_user")
     user = User.objects.get(pk=current_user_id)
     if(user.is_verified==True):
         user_joined_groups = GroupMember.objects.filter(user=user)
-        return render(request,"Users/show_groups.html")
+        return render(request,"Users/show_groups.html",{"groups":user_joined_groups})
 
-
-        return HttpResponse("done")
     else:
         return HttpResponse("You are not verified yet!")
+
+
+
+def create_group(request):
+    if(request.method == "POST"):
+        current_user_id = request.session.get("current_user")
+        user = User.objects.get(pk=current_user_id)
+        group_name = request.POST.get("group_name")
+        description = request.POST.get("description", "")
+        group_pic = request.FILES.get("group_pic")
+        selected_members = request.POST.getlist("members")
+        AES_KEY = get_random_bytes(32)
+        public_key_admin = user.public_key
+        aes_key_encrypted = encrypt_aes_key(AES_KEY,public_key_admin)
+
+
+        new_group = Group.objects.create(
+            name=group_name,
+            description=description,
+            group_profile_picture=group_pic,
+            admin=user,
+            aes_key_encrypted_by_admin=aes_key_encrypted,
+        )
+        new_group.save()
+
+        admin_as_a_member = GroupMember.objects.create(
+                group=new_group,
+                user=user,
+                aes_key_encrypted=aes_key_encrypted,
+            )
+        admin_as_a_member.save()
+
+
+        for member in selected_members:
+            new_group_member = User.objects.get(pk=member)
+            new_member_public_key = new_group_member.public_key
+            aes_key_encrypted_for_group_member = encrypt_aes_key(AES_KEY,new_member_public_key)
+            new_member = GroupMember.objects.create(
+                group=new_group,
+                user=new_group_member,
+                aes_key_encrypted=aes_key_encrypted_for_group_member,
+            )
+            new_member.save()
+ 
+        return redirect("Users:show_groups")
+    else:
+        current_user_id = request.session.get("current_user")
+        user = User.objects.get(pk=current_user_id)
+        friends = OnetoOneConversation.objects.filter(
+                Q(user_a=user) | Q(user_b=user)
+        )
+        friends_data=[]
+        for friend in friends:
+            if(friend.user_a==user):
+                friends_data.append(friend.user_b)
+            else:
+                friends_data.append(friend.user_a)
+        return render(request,"Users/create_group.html",{"friends":friends_data})
+
+
+
+
+def send_group_message(request,group_id):
+    current_user_id = request.session.get("current_user")
+    user = User.objects.get(pk=current_user_id)
+    group = Group.objects.get(pk=group_id)
+    print(user)
+    print(group)
+    user_joined_groups = GroupMember.objects.filter(user=user,group=group)
+    if(user_joined_groups.exists()):
+        old_messages = []
+        new_msg = GroupMessages.objects.create(
+            group=group,
+            sender=user,
+            encrypted_message_content=b"hii bhai",
+        )
+        new_msg.save()
+        user = User.objects.get(pk=6)
+        new_msg = GroupMessages.objects.create(
+            group=group,
+            sender=user,
+            encrypted_message_content=b"bol bhai",
+        )
+        new_msg.save()
+        user_public_key = user.public_key
+        user_private_key = user.private_key
+        user_grp=user_joined_groups.first()
+        aes_key_for_user = user_grp.aes_key_encrypted
+        base64_aes_key = base64.b64encode(aes_key_for_user).decode()
+        group_messages = GroupMessages.objects.filter(group=group)
+        
+        for message in group_messages:
+            #encrypted_msg_base64 = base64.b64encode(message.encrypted_message_content).decode('utf-8')
+            temp_msg = {}
+            encrypted_msg_base64=message.encrypted_message_content
+            temp_msg["message_encrypted"]=encrypted_msg_base64
+            temp_msg["sender"]=message.sender
+            temp_msg["time"]=message.sent_at
+            old_messages.append(temp_msg)
+
+        CONTEXT = {}
+        CONTEXT["messages"]=old_messages
+        CONTEXT["user"]=user
+        CONTEXT["USER_PUBLIC_KEY"]=user_public_key
+        CONTEXT["USER_PRIVATE_KEY"]=user_private_key
+        CONTEXT["AES_KEY_ENCRYPTED"]=base64_aes_key
+        CONTEXT["group"]=group
+        return render(request,"Users/group_message.html",CONTEXT)
+    else:
+        return HttpResponse("fake request h")
+    
+
+
+    
+
 
 
 # @staff_member_required
