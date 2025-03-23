@@ -1,0 +1,47 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{% static 'Users/group_message.css' %}">
+    <title>Group Chat</title>
+</head>
+<body>
+
+    <div class="group-container">
+        <div class="group-header">
+            <div class="group-info">
+                <img src="{{ group.group_profile_picture.url }}" alt="{{ group.name }}">
+                <strong>{{ group.name }}</strong>
+            </div>
+            <div class="group-nav">
+                <a href="{% url 'Users:login' %}">View Group</a>
+                <a href="{% url 'Users:home' %}">Home</a>
+            </div>
+        </div>
+
+        <div class="messages-container">
+            {% for message in messages %}
+                <div class="message {% if message.sender == user %}user-message{% else %}other-message{% endif %}">
+                    <p class="sender-name">{{ message.sender.username }}</p>
+                    <span class="message-text">{{ message.message_encrypted }}</span>
+                    <div class="timestamp">
+                        {{ message.time|time:"H:i A" }}
+                        {% if message.sender == user and message.read %} ✔✔ {% endif %}
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+
+        <form id="chatForm" class="chat-footer" enctype="multipart/form-data" method="POST" action="{% url 'Users:send_group_message' group.id %}">
+            {% csrf_token %}
+            <input type="text" id="messageInput" name="message" placeholder="Type a message..." required>
+            <input type="file" id="fileInput" name="file">
+            <button type="submit">Send</button>
+        </form>
+        
+    </div>
+
+</body>
+</html>

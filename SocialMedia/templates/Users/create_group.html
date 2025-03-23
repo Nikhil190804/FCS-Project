@@ -1,0 +1,54 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Group</title>
+    <link rel="stylesheet" href="{% static 'Users/create_group.css' %}">
+</head>
+<body>
+    <div class="container">
+        <h2>Create a Group</h2>
+        <form method="POST" action="{% url 'Users:create_group' %}" enctype="multipart/form-data">
+            {% csrf_token %}
+            <label for="group_name">Group Name:</label>
+            <input type="text" id="group_name" name="group_name" required>
+
+            <label for="description">Description (optional):</label>
+            <textarea id="description" name="description"></textarea>
+
+            <label for="group_pic">Group Picture:</label>
+            <input type="file" id="group_pic" name="group_pic" accept="image/*" required>
+
+            <button type="button" id="toggle-members">Add Members</button>
+
+            <div id="friends-section" class="hidden">
+                <h3>Select Friends</h3>
+                <div class="friends-list">
+                    {% for friend in friends %}
+                    <div class="friend-card">
+                        <img src="{{ friend.profile_picture.url }}" alt="Profile Picture">
+                        <p>{{ friend.username }}</p>
+                        {% if friend.is_verified %}
+                            <input type="checkbox" name="members" value="{{ friend.user_id }}">
+                        {% else %}
+                            <p class="not-verified">Not Verified</p>
+                            <input type="checkbox" disabled>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <button type="submit" class="create-btn">Create Group</button>
+        </form>
+    </div>
+
+    <script>
+        document.getElementById("toggle-members").addEventListener("click", function() {
+            document.getElementById("friends-section").classList.toggle("hidden");
+        });
+    </script>
+</body>
+</html>

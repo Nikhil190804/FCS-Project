@@ -17,11 +17,11 @@
             <div id="group_list">
                 {% for group in groups %}
                     <div class="group_card">
-                        <img class="group_profile_pic" src="{{ group.profile_picture.url }}" alt="{{ group.name }}'s Profile">
+                        <img class="group_profile_pic" src="{{ group.group.group_profile_picture.url }}" alt="{{ group.group.name }}'s Profile">
                         <div class="group_info">
-                            <p class="group_name">{{ group.name }}</p>
+                            <p class="group_name">{{ group.group.name }}</p>
                         </div>
-                        <a href="{% url 'Users:login' %}" class="msg_send_btn">Chat</a>
+                        <a href="{% url 'Users:send_group_message' group.group.id %}" class="msg_send_btn">Chat</a>
                     </div>
                 {% endfor %}
             </div>
@@ -31,7 +31,7 @@
 
         <div class="action_buttons">
             <a href="{% url 'Users:home' %}" class="back_btn">Back</a>
-            <a href="{% url 'Users:login' %}" class="create_group_btn">Create New Group</a>
+            <a href="{% url 'Users:create_group' %}" class="create_group_btn">Create New Group</a>
         </div>
     </div>
 
