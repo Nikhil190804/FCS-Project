@@ -1,24 +1,21 @@
 from django.contrib import admin
-from django.contrib.auth.models import User
-from django.contrib.auth.models import Group
-
-
+from .models import User
 
 class UserAdmin(admin.ModelAdmin):
-    list_display = ('username', 'email', 'is_active', 'is_staff')
+    list_display = ('username', 'email', 'is_verified')
+    list_filter = ('is_verified',)
     search_fields = ('username', 'email')
-    actions = ['reject_users', 'verify_users']
-    def has_add_permission(self, request):
-        return False
-
-    def reject_users(self, request, queryset):
-        queryset.update(is_active=False)
-    reject_users.short_description = "Reject selected users"
+    actions = ['verify_users', 'unverify_users']
 
     def verify_users(self, request, queryset):
-        queryset.update(is_active=True)
-    verify_users.short_description = "Verify selected users"
+        queryset.update(is_verified=True)
+        self.message_user(request, "Selected users have been verified.")
 
-admin.site.unregister(User)
+    def unverify_users(self, request, queryset):
+        queryset.update(is_verified=False)
+        self.message_user(request, "Selected users have been unverified.")
+
+    verify_users.short_description = "Mark selected users as verified"
+    unverify_users.short_description = "Mark selected users as unverified"
+
 admin.site.register(User, UserAdmin)
-admin.site.unregister(Group)

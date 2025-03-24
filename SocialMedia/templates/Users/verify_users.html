@@ -1,0 +1,32 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+<h1>Pending User Verifications</h1>
+
+{% if users %}
+    <table border="1">
+        <tr>
+            <th>Username</th>
+            <th>Email</th>
+            <th>Profile Picture</th>
+            <th>Verification Document</th>
+            <th>Actions</th>
+        </tr>
+        {% for user in users %}
+        <tr>
+            <td>{{ user.username }}</td>
+            <td>{{ user.email }}</td>
+            <td><img src="{{ user.profile_picture.url }}" width="50"></td>
+            <td><a href="{{ user.verfication_document.url }}" target="_blank">View Document</a></td>
+            <td>
+                <a href="{% url 'change_verification_status' user.user_id 'verify' %}" class="button">Verify</a>
+                <a href="{% url 'change_verification_status' user.user_id 'unverify' %}" class="button">Reject</a>
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+{% else %}
+    <p>No users pending verification.</p>
+{% endif %}
+
+{% endblock %}

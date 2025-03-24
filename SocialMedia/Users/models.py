@@ -11,6 +11,9 @@ class User(models.Model):
     bio = models.TextField(blank=True, null=True)
     is_verified = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
+    public_key = models.TextField() 
+
+
     
     def __str__(self):
         return f"Hello I am {self.username}"
@@ -85,11 +88,51 @@ class OnetoOneMessage(models.Model):
     conversation = models.ForeignKey('OnetoOneConversation', on_delete=models.CASCADE, related_name='messages')
     sender = models.ForeignKey('User', on_delete=models.CASCADE, related_name='sent_onetoone_messages')
     receiver = models.ForeignKey('User', on_delete=models.CASCADE, related_name='received_onetoone_messages')
-
     encrypted_message_content = models.BinaryField()  
-    encryption_iv = models.BinaryField()
+    encryption_iv = models.BinaryField(default=1)  
+    document = models.FileField(upload_to='one_to_one_documents/', blank=True, null=True)
+    is_document_present = models.BooleanField(default=False)
 
     sent_at = models.DateTimeField(auto_now_add=True)
+    is_read = models.BooleanField(default=False) 
 
     def __str__(self):
         return f"Message from {self.sender.username} to {self.receiver.username}"
+    
+
+class Group(models.Model):
+    name = models.CharField(max_length=255)
+    description = models.TextField()
+    group_profile_picture = models.ImageField(upload_to='group_profile_pictures/',blank=False, null=False)
+    admin = models.ForeignKey(User, on_delete=models.CASCADE, related_name="admin_groups")
+    created_at = models.DateTimeField(auto_now_add=True)
+    aes_key_encrypted_by_admin = models.BinaryField()  
+
+    def __str__(self):
+        return self.name
+
+
+class GroupMember(models.Model):
+    group = models.ForeignKey(Group, on_delete=models.CASCADE, related_name="group_members")
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="group_memberships")
+    aes_key_encrypted = models.BinaryField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('group', 'user')
+
+    def __str__(self):
+        return f"{self.user.username} is a part of {self.group}"
+
+
+
+class GroupMessages(models.Model):
+    group = models.ForeignKey(Group, on_delete=models.CASCADE, related_name="group_messages")
+    sender = models.ForeignKey(User, on_delete=models.CASCADE, related_name="sent_group_messages")
+    encrypted_message_content = models.BinaryField()  
+    sent_at = models.DateTimeField(auto_now_add=True)
+
+
+    def __str__(self):
+        return f"Message from {self.sender.username}"
+    

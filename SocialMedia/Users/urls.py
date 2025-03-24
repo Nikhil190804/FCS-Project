@@ -15,9 +15,10 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 
-from django.urls import path, include
-from . import views
-from .views import reject_user, verify_user
+from django.urls import path
+from django.contrib import admin
+from Users.views import verify_users, change_verification_status 
+import Users.views as views 
 urlpatterns = [
     path('signup/',views.handle_signup_request,name="signup"),
     path('login/',views.handle_login_request,name="login"),
@@ -30,11 +31,19 @@ urlpatterns = [
     path('change_password/',views.change_password,name="change_password"),
     path('messages/',views.messages,name="messages"),
     path('start_conversation/',views.start_conversation,name="start_conversation"),
-    
+    path('send_one_to_one_message/<int:reciever_id>/',views.send_one_to_one_message, name='send_one_to_one_message'),
+    path('show_groups/',views.show_groups,name="show_groups"),
+    path('create_group/',views.create_group,name="create_group"),
+    path('send_group_message/<int:group_id>/',views.send_group_message,name="send_group_message"),
+    path('view_group/<int:group_id>/',views.view_group,name="view_group"),
 
-    
-    
 
-    path('reject/<int:user_id>/', reject_user, name='reject_user'),
-    path('verify/<int:user_id>/', verify_user, name='verify_user'),
+
+
+
+    path("admin/verify_users/", verify_users, name="verify_users"),
+    path("admin/verify/<int:user_id>/<str:status>/", change_verification_status, name="change_verification_status"),
+    path('admin/', admin.site.urls),
+    path('profile/', views.profile, name="profile"),
+
 ]
