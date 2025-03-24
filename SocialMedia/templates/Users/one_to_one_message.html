@@ -7,9 +7,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="{% static 'Users/one_to_one_message.css' %}">
     <title>Chat with {{ friend.username }}</title>
-    <style>
-        
-    </style>
 </head>
 <body>
 
@@ -19,6 +16,7 @@
                 <img src="{{ friend.profile_picture.url }}" alt="{{ friend.username }}'s Profile">
                 <strong>{{ friend.username }}</strong>
             </div>
+            <button id="refreshMessages">🔄 Refresh Chat</button>
             <a href="{% url 'Users:home' %}">Home</a>
         </div>
 
@@ -46,6 +44,21 @@
 
 
     <script>
+
+        document.getElementById("refreshMessages").addEventListener("click", async function() {
+            window.location.reload();
+        });
+
+        function get_private_key(username){
+            const key = localStorage.getItem(username+"private_key");
+            if (key) {
+                return key;
+            } else {
+                return null;
+            }
+        };
+
+
         function convert_base64_to_Uintarray(base64_key){
             const key = Uint8Array.from(atob(base64_key), c => c.charCodeAt(0));
             return key;
@@ -159,7 +172,11 @@
         const messageInput = document.getElementById("messageInput");
         const USER_PUBLIC_KEY = `{{ USER_PUBLIC_KEY|escapejs }}`;
         const AES_KEY_ENCRYPTED = "{{ AES_KEY_ENCRYPTED|escapejs }}";  
-        const USER_PRIVATE_KEY =  "{{ USER_PRIVATE_KEY|escapejs }}";  
+        const username = "{{ USERNAME|escapejs }}"
+        const USER_PRIVATE_KEY =  get_private_key(username)
+        if(!USER_PRIVATE_KEY){
+            alert("ERROR ERROR ERROR!!");
+        }
         const messages = document.querySelectorAll(".encrypted-text");
 
         document.addEventListener("DOMContentLoaded", async function () {
@@ -259,6 +276,7 @@
             messageInput.value = "";
             if(response.ok){
                 alert("Message Sent!")
+                window.location.reload();
             }
             else{
                 alert(`Message Not Sent!: ${responseText}`)

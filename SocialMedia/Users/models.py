@@ -12,7 +12,6 @@ class User(models.Model):
     is_verified = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     public_key = models.TextField() 
-    private_key = models.TextField() 
 
 
     

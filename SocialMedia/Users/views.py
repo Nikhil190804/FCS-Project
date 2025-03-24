@@ -18,6 +18,7 @@ import base64
 from Crypto.Random import get_random_bytes
 from Crypto.Hash import SHA256
 import json
+from django.shortcuts import  get_object_or_404
 # Create your views here.
 from django.contrib.admin.views.decorators import staff_member_required
 
@@ -25,10 +26,6 @@ def profile(request):
     return render(request, 'Users/profile.html')
 
 
-from django.contrib.admin.views.decorators import staff_member_required
-from django.shortcuts import render, get_object_or_404, redirect
-from .models import User
-from django.contrib import messages
 
 @staff_member_required
 def verify_users(request):
@@ -42,7 +39,7 @@ def change_verification_status(request, user_id, status):
     user.save()
     
     status_message = "verified" if user.is_verified else "unverified"
-    messages.success(request, f"User {user.username} has been {status_message}.")
+    mem.success(request, f"User {user.username} has been {status_message}.")
     return redirect("verify_users")
 
 
@@ -221,7 +218,6 @@ def create_profile(request):
             profile_picture=profile_picture,
             bio=bio,
             public_key=public_key,
-            private_key=private_key,
         )
 
         if verification_doc:
@@ -230,6 +226,7 @@ def create_profile(request):
         user.save()
         request.session.pop("pending_user", None)
         request.session["current_user"] = user.user_id
+        request.session["private_key"]=private_key
         return redirect("Users:home")
         
     else:
@@ -237,11 +234,21 @@ def create_profile(request):
 
 def home(request):
     user_id=request.session["current_user"]
-    user = User.objects.get(user_id=user_id)  
-    context = {
+    private_key = request.session.get("private_key")
+    user = User.objects.get(user_id=user_id)
+    if(not private_key):
+        context = {
         "user_name": user.username, 
-    }
-    return render(request,"Users/home.html",context)
+        }
+        return render(request,"Users/home.html",context)
+    else:
+        context = {
+            "user_name": user.username, 
+            "private_key": private_key,
+        }
+        request.session.pop("private_key", None)
+        return render(request,"Users/home.html",context)
+    
 
 
 def search_users(request):
@@ -262,7 +269,9 @@ def search_users(request):
     if(request.method == "GET"):
         search_parameter = request.GET.get('query', None)
         if(search_parameter !=None):
-            search_results = User.objects.filter(username__icontains=search_parameter).exclude(user_id=current_user_id)
+           search_results = User.objects.filter(
+                Q(username__icontains=search_parameter) | Q(bio__icontains=search_parameter) 
+            ).exclude(user_id=current_user_id)
         else:
             search_results=None
 
@@ -404,7 +413,6 @@ def send_one_to_one_message(request,reciever_id):
             old_messages = []
             aes_current_user_version = None
             current_user_public_key = current_user.public_key
-            current_user_private_key = current_user.private_key
             if(conversation.user_a==current_user):
                 aes_current_user_version=conversation.encrypted_aes_key_for_user_a
             else:
@@ -426,8 +434,9 @@ def send_one_to_one_message(request,reciever_id):
             CONTEXT["messages"]=old_messages
             CONTEXT["user"]=current_user
             CONTEXT["USER_PUBLIC_KEY"]=current_user_public_key
-            CONTEXT["USER_PRIVATE_KEY"]=current_user_private_key
             CONTEXT["AES_KEY_ENCRYPTED"]=base64_aes_key
+            CONTEXT["USERNAME"]=current_user.username
+
             
             return render(request,"Users/one_to_one_message.html",CONTEXT )
 
@@ -521,8 +530,62 @@ def create_group(request):
 
 
 
-
 def send_group_message(request,group_id):
+    if(request.method == "POST"):
+        current_user_id = request.session.get("current_user")
+        user = User.objects.get(pk=current_user_id)
+        group = Group.objects.get(pk=group_id)
+        user_joined_groups = GroupMember.objects.filter(user=user,group=group)
+        if(user_joined_groups.exists()):
+            data = json.loads(request.body)
+            message_encrypted = base64.b64decode(data["encrypted_msg"]) 
+            new_grp_msg = GroupMessages.objects.create(
+                group = group,
+                sender=user,
+                encrypted_message_content=message_encrypted,
+            )
+            new_grp_msg.save()
+            return HttpResponse("done",status=200)
+        else:
+            return HttpResponse("Not allowed",status=403)
+
+    else:
+
+        current_user_id = request.session.get("current_user")
+        user = User.objects.get(pk=current_user_id)
+        group = Group.objects.get(pk=group_id)
+        print(user)
+        print(group)
+        user_joined_groups = GroupMember.objects.filter(user=user,group=group)
+        if(user_joined_groups.exists()):
+            old_messages = []
+            user_public_key = user.public_key
+            user_grp=user_joined_groups.first()
+            aes_key_for_user = user_grp.aes_key_encrypted
+            base64_aes_key = base64.b64encode(aes_key_for_user).decode()
+            group_messages = GroupMessages.objects.filter(group=group)
+            
+            for message in group_messages:
+                encrypted_msg_base64 = base64.b64encode(message.encrypted_message_content).decode('utf-8')
+                temp_msg = {}
+                temp_msg["message_encrypted"]=encrypted_msg_base64
+                temp_msg["sender"]=message.sender
+                temp_msg["time"]=message.sent_at
+                old_messages.append(temp_msg)
+
+            CONTEXT = {}
+            CONTEXT["messages"]=old_messages
+            CONTEXT["user"]=user
+            CONTEXT["USER_PUBLIC_KEY"]=user_public_key
+            CONTEXT["AES_KEY_ENCRYPTED"]=base64_aes_key
+            CONTEXT["group"]=group
+            CONTEXT["USERNAME"]=user.username
+            return render(request,"Users/group_message.html",CONTEXT)
+        else:
+            return HttpResponse("fake request h")
+    
+
+def view_group(request,group_id):
     current_user_id = request.session.get("current_user")
     user = User.objects.get(pk=current_user_id)
     group = Group.objects.get(pk=group_id)
@@ -530,48 +593,32 @@ def send_group_message(request,group_id):
     print(group)
     user_joined_groups = GroupMember.objects.filter(user=user,group=group)
     if(user_joined_groups.exists()):
-        old_messages = []
-        new_msg = GroupMessages.objects.create(
-            group=group,
-            sender=user,
-            encrypted_message_content=b"hii bhai",
-        )
-        new_msg.save()
-        user = User.objects.get(pk=6)
-        new_msg = GroupMessages.objects.create(
-            group=group,
-            sender=user,
-            encrypted_message_content=b"bol bhai",
-        )
-        new_msg.save()
-        user_public_key = user.public_key
-        user_private_key = user.private_key
-        user_grp=user_joined_groups.first()
-        aes_key_for_user = user_grp.aes_key_encrypted
-        base64_aes_key = base64.b64encode(aes_key_for_user).decode()
-        group_messages = GroupMessages.objects.filter(group=group)
         
-        for message in group_messages:
-            #encrypted_msg_base64 = base64.b64encode(message.encrypted_message_content).decode('utf-8')
-            temp_msg = {}
-            encrypted_msg_base64=message.encrypted_message_content
-            temp_msg["message_encrypted"]=encrypted_msg_base64
-            temp_msg["sender"]=message.sender
-            temp_msg["time"]=message.sent_at
-            old_messages.append(temp_msg)
+        all_group_members = GroupMember.objects.filter(group_id=group_id)
+        group_members=[]
+        for member in all_group_members:
+            if(member.user==user):
+                member.to_show=False
+            else:
+                is_friend = Friendship.objects.filter(
+                    (Q(from_user=user, to_user=member.user) | Q(from_user=member.user, to_user=user)) &
+                    Q(status__in=["accepted", "pending"])
+                ).exists()
 
+                if(is_friend):
+                    member.to_show=False
+                else:
+                    member.to_show=True
+            group_members.append(member)
+
+            
         CONTEXT = {}
-        CONTEXT["messages"]=old_messages
-        CONTEXT["user"]=user
-        CONTEXT["USER_PUBLIC_KEY"]=user_public_key
-        CONTEXT["USER_PRIVATE_KEY"]=user_private_key
-        CONTEXT["AES_KEY_ENCRYPTED"]=base64_aes_key
         CONTEXT["group"]=group
-        return render(request,"Users/group_message.html",CONTEXT)
-    else:
-        return HttpResponse("fake request h")
-    
+        CONTEXT["group_members"]=group_members
 
+        return render(request,"Users/view_group.html",CONTEXT)
+    else:
+        return HttpResponse("not allowed to show")
 
     
 

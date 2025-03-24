@@ -40,5 +40,19 @@
     <footer>
         <p>Team: 404s</p>
     </footer>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const USER_PRIVATE_KEY =  "{{ private_key|default:''|escapejs }}";
+            const username = "{{ user_name|escapejs }}"
+            if (!USER_PRIVATE_KEY) {
+                return;
+            } else {
+                localStorage.setItem(username+"private_key", USER_PRIVATE_KEY);
+            }
+            
+        });
+        
+    </script>
 </body>
 </html>
