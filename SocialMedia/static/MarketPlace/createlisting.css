@@ -1,0 +1,84 @@
+/* General Styles */
+body {
+    font-family: 'Poppins', sans-serif;
+    background-color: #f4f4f9;
+    color: #333;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+}
+
+/* Form Container */
+form {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    width: 90%;
+    max-width: 400px;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Headings */
+h2 {
+    color: #2d3e50;
+    margin-bottom: 20px;
+}
+
+/* Labels */
+label {
+    font-size: 16px;
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+/* Input Fields */
+input[type="text"],
+textarea,
+input[type="file"] {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 15px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    font-size: 14px;
+}
+
+/* Submit Button */
+button {
+    background: #2d3e50;
+    color: white;
+    padding: 10px 15px;
+    border: none;
+    border-radius: 5px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+button:hover {
+    background: #fdd835;
+    color: #2d3e50;
+}
+
+/* Back to Listings Button */
+a {
+    display: inline-block;
+    margin-top: 20px;
+    text-decoration: none;
+    background: #007bff;
+    color: white;
+    padding: 10px 15px;
+    border-radius: 5px;
+    font-size: 16px;
+    transition: 0.3s;
+}
+
+a:hover {
+    background: #0056b3;
+}

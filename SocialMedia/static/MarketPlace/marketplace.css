@@ -1,0 +1,134 @@
+/* General Styles */
+body {
+    font-family: 'Poppins', sans-serif;
+    background-color: #f4f4f9;
+    color: #333;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100vw;
+}
+
+/* Page Title */
+h2 {
+    color: #2d3e50;
+    margin-top: 20px;
+    text-align: center;
+}
+
+/* Marketplace Buttons */
+.marketplace-buttons {
+    margin: 20px 0;
+    display: flex;
+    gap: 15px;
+}
+
+.marketplace-buttons .btn {
+    padding: 10px 15px;
+    background-color: #2d3e50;
+    color: white;
+    text-decoration: none;
+    border-radius: 5px;
+    font-size: 16px;
+    transition: 0.3s;
+}
+
+.marketplace-buttons .btn:hover {
+    background: #fdd835;
+    color: #2d3e50;
+}
+
+/* Product List */
+.product-list {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 20px;
+    padding: 20px;
+    width: 90%;
+}
+
+/* Product Card */
+.product-card {
+    background: white;
+    padding: 15px;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    width: 250px;
+    text-align: center;
+    transition: transform 0.3s;
+}
+
+.product-card:hover {
+    transform: scale(1.05);
+}
+
+/* Product Image */
+.product-card img {
+    width: 100%;
+    height: auto;
+    border-radius: 10px;
+}
+
+/* Product Title */
+.product-card h3 {
+    color: #2d3e50;
+    font-size: 18px;
+    margin: 10px 0;
+}
+
+/* Product Description */
+.product-card p {
+    font-size: 14px;
+    color: #666;
+    margin-bottom: 10px;
+}
+
+/* Add to Cart Form */
+.product-card form {
+    margin-top: 10px;
+}
+
+.product-card input[type="number"] {
+    width: 50px;
+    padding: 5px;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+}
+
+/* Buttons */
+.product-card button {
+    background: #2d3e50;
+    color: white;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 5px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: 0.3s;
+    margin-top: 5px;
+}
+
+.product-card button:hover {
+    background: #fdd835;
+    color: #2d3e50;
+}
+
+/* Delete Button */
+.product-card button[style*="background-color: red"] {
+    background: #d9534f;
+}
+
+.product-card button[style*="background-color: red"]:hover {
+    background: #c9302c;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .product-list {
+        flex-direction: column;
+        align-items: center;
+    }
+}
