@@ -21,6 +21,8 @@ import json
 from django.shortcuts import  get_object_or_404
 # Create your views here.
 from django.contrib.admin.views.decorators import staff_member_required
+import os
+import django.conf as dj_conf
 
 def profile(request):
     return render(request, 'Users/profile.html')
@@ -348,6 +350,44 @@ def change_password(request):
         else:
             print(message)
             return HttpResponse("L lg gye dost!")
+
+
+
+def change_bio(request):
+    if(request.method == "POST"):
+        current_user_id = request.session.get("current_user")
+        user = User.objects.get(user_id=current_user_id)
+        new_bio = request.POST.get("bio", None)
+        if(new_bio is not None):
+            user.bio=new_bio
+            user.save()
+            return render(request,"Users/change_profile.html",{"message":"Bio Updated Successfully !"})
+        else: 
+            mem.success(request,"New Bio is Empty!")
+            return render(request,"Users/change_profile.html",{"message":"New Bio is Empty!"})
+    else:
+        return render(request,"Users/change_profile.html",{"bio":True})
+
+def change_profile_picture(request):
+    if(request.method == "POST"):
+        current_user_id = request.session.get("current_user")
+        user = User.objects.get(user_id=current_user_id)
+        if ("profile_picture" in request.FILES):
+            if user.profile_picture:  
+                old_picture_path = os.path.join(dj_conf.settings.MEDIA_ROOT, str(user.profile_picture))
+                print(old_picture_path)
+                if os.path.exists(old_picture_path):
+                    os.remove(old_picture_path)
+            new_picture = request.FILES["profile_picture"]
+            user.profile_picture = new_picture 
+            user.save()
+            return render(request,"Users/change_profile.html",{"message":"Profile Updated Successfully!"})
+        else: 
+            return render(request,"Users/change_profile.html",{"message":"Photo Not Uploaded or Backend Error!"})
+     
+    else:
+        return render(request,"Users/change_profile.html",{"profile_picture":True})
+
 
 
 def messages(request):
