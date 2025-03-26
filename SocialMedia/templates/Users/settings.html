@@ -32,9 +32,14 @@
       </div>
       {% endif %} {% if action %}
       <div class="actions">
+        <h3>Profile Management Actions</h3>
         <a href="{% url 'Users:change_password' %}" class="btn"
-          >Change Your Password</a
-        >
+          >Change Your Password</a>
+          <a href="{% url 'Users:change_bio' %}" class="btn"
+          >Change Your Bio</a>
+          <a href="{% url 'Users:change_profile_picture' %}" class="btn"
+          >Change Your Profile Picture</a>
+
       </div>
       {% endif %}
 

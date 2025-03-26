@@ -1,0 +1,47 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profile Management</title>
+    <link rel="stylesheet" href="{% static 'Users/change_profile.css' %}">
+</head>
+<body>
+
+    <div class="profile-container">
+        <h2>Manage Profile</h2>
+        
+        <form method="POST" enctype="multipart/form-data">
+            {% csrf_token %}
+
+            {% if bio %}
+            <div class="profile-section">
+                <h4>Update Bio:</h4>
+                <textarea name="bio" id="bio" value="" placeholder="Write something about yourself..."></textarea>
+                
+            </div>
+            <button type="submit">Save Changes</button>
+            {% endif %}
+
+            {% if profile_picture %}
+            <div class="profile-section">
+                <label for="profile_picture">Update Profile Picture:</label>
+                <input type="file" accept="image/*" id="profile_picture" name="profile_picture" required>
+            </div>
+            <button type="submit">Save Changes</button>
+            {% endif %}
+
+        </form>
+    </div>
+
+    {% if message %}
+    <div class="message-card">
+      <p><strong>Status:</strong> {{ message }}</p>
+      <a href="{% url 'Users:home' %}" class="btn"
+          >Home</a>
+    </div>
+    {% endif %}
+
+</body>
+</html>
