@@ -125,21 +125,3 @@ footer {
     color: #1e2a38;
     border-radius: 10%
 }
-
-.marketplace-buttons {
-    margin-top: 20px;
-    display: flex;
-    gap: 15px;
-}
-
-.marketplace-buttons .btn {
-    padding: 10px 15px;
-    background-color: #007bff;
-    color: white;
-    text-decoration: none;
-    border-radius: 5px;
-}
-
-.marketplace-buttons .btn:hover {
-    background-color: #0056b3;
-}
