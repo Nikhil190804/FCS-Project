@@ -16,7 +16,7 @@ urlpatterns += [
     path('listings/<int:product_id>/delete/', views.delete_product, name='delete_product'), 
     path('order/', views.order, name='order'),
     path('order-confirmation/', views.order_confirmation, name='order_confirmation'),
-    path('create-checkout-session', views.CreateCheckoutSessionView.as_view(), name='create-checkout-session')
+    
 
 
 ]

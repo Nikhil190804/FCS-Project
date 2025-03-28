@@ -13,11 +13,11 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 from pathlib import Path
 import os
 
-import environ
-env = environ.Env(
-    DEBUG=(bool, False)
-)
-environ.Env.read_env()
+# import environ
+# env = environ.Env(
+#     DEBUG=(bool, False)
+# )
+# environ.Env.read_env()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -26,10 +26,14 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = env('SECRET_KEY')
+# SECRET_KEY = env('SECRET_KEY')
+
+
+SECRET_KEY='django-insecure-$#0w$fx@#&z$*xsxnu!4xftm5f87ivo8vk(7rf)_^r0^gz2crr'
+DEBUG=True
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = env('DEBUG')
+# DEBUG = env('DEBUG')
 
 ALLOWED_HOSTS = []
 
@@ -164,6 +168,3 @@ EMAIL_HOST_PASSWORD = "xevy dlww thky aomt"  # Use an app password (not your rea
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
 
-STRIPE_PUBLIC_KEY=env('STRIPE_PUBLIC_KEY')
-STRIPE_SECRET_KEY=env('STRIPE_SECRET_KEY')
-STRIPE_WEBHOOK_SECRET=env('STRIPE_WEBHOOK_SECRET')

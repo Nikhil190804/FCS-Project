@@ -24,21 +24,17 @@
                             <h3>{{ item.product.name }}</h3>
                             <p>💰 Price: ₹{{ item.product.price }}</p>
                             <p>📦 Quantity: {{ item.quantity }}</p>
-                            <p>🔢 Subtotal: ₹{{ item.product.price|floatformat:2|add:item.quantity|floatformat:2 }}</p>
+                            <p>🔢 Subtotal: ₹{{ item.subtotal|floatformat:2 }}</p>
                         </div>
                     </div>
                 {% endfor %}
 
                 <hr>
-                <h3 class="total-price">🧾 Total Price: ₹{{ total_price }}</h3>
-                <form action="{% url 'MarketPlace:create-checkout-session' %}" method="POST">
-                    {% csrf_token %}
-                    <button type="submit" id="checkout-button">Checkout</button>
-                </form>
-                <!-- <form action="{% url 'MarketPlace:order_confirmation' %}" method="POST">
+                <h3 class="total-price">🧾 Total Price: ₹{{ total_price|floatformat:2 }}</h3>
+                <form action="{% url 'MarketPlace:order' %}" method="POST">
                     {% csrf_token %}
                     <button type="submit" class="order-btn">✅ Place Order</button>
-                </form> -->
+                </form>
             {% else %}
                 <p class="empty-cart">🛒 Your cart is empty.</p>
             {% endif %}
