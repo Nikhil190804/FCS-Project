@@ -89,9 +89,11 @@ class OnetoOneMessage(models.Model):
     sender = models.ForeignKey('User', on_delete=models.CASCADE, related_name='sent_onetoone_messages')
     receiver = models.ForeignKey('User', on_delete=models.CASCADE, related_name='received_onetoone_messages')
     encrypted_message_content = models.BinaryField()  
-    encryption_iv = models.BinaryField(default=1)  
-    document = models.FileField(upload_to='one_to_one_documents/', blank=True, null=True)
-    is_document_present = models.BooleanField(default=False)
+
+    is_attachment_present = models.BooleanField(default=False)
+    is_message_present = models.BooleanField(default=True)
+    attachment = models.ForeignKey('OneToOneAttachment', on_delete=models.SET_NULL, related_name='attached_message', blank=True, null=True)
+
 
     sent_at = models.DateTimeField(auto_now_add=True)
     is_read = models.BooleanField(default=False) 
@@ -99,6 +101,22 @@ class OnetoOneMessage(models.Model):
     def __str__(self):
         return f"Message from {self.sender.username} to {self.receiver.username}"
     
+
+class OneToOneAttachment(models.Model):
+
+    conversation = models.ForeignKey(
+        'OnetoOneConversation', on_delete=models.CASCADE, related_name='conservation_attachments', blank=False, null=False
+    )
+    message = models.ForeignKey(
+        'OnetoOneMessage', on_delete=models.CASCADE, related_name='onetoonemessage_attachments', blank=False, null=False
+    )
+    file = models.FileField(upload_to='one_to_one_attachments/')
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Attachment - {self.file.name}"
+
+
 
 class Group(models.Model):
     name = models.CharField(max_length=255)
@@ -130,9 +148,28 @@ class GroupMessages(models.Model):
     group = models.ForeignKey(Group, on_delete=models.CASCADE, related_name="group_messages")
     sender = models.ForeignKey(User, on_delete=models.CASCADE, related_name="sent_group_messages")
     encrypted_message_content = models.BinaryField()  
+
+    is_attachment_present = models.BooleanField(default=False)
+    is_message_present = models.BooleanField(default=True)
+    attachment = models.ForeignKey('GroupAttachment', on_delete=models.SET_NULL, related_name='group_attachment_message', blank=True, null=True)
+
     sent_at = models.DateTimeField(auto_now_add=True)
 
 
     def __str__(self):
         return f"Message from {self.sender.username}"
     
+
+class GroupAttachment(models.Model):
+
+    group = models.ForeignKey(
+        'Group', on_delete=models.CASCADE, related_name='group_attachments', blank=False, null=False
+    )
+    message = models.ForeignKey(
+        'GroupMessages', on_delete=models.CASCADE, related_name='group_message_attachments', blank=False, null=False
+    )
+    file = models.FileField(upload_to='one_to_one_attachments/')
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Attachment - {self.file.name}"

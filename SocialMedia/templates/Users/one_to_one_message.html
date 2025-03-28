@@ -23,7 +23,18 @@
         <div class="messages-container">
             {% for message in messages %}
                 <div class="message {% if message.sender == user %}user-message{% else %}friend-message{% endif %}">
-                    <span class="encrypted-text" id="{{ forloop.counter0 }}">{{ message.message_encrypted }}</span>
+
+                    {% if message.is_attachment_present %}
+                        <div class="attachment">
+                            <a href="{% url 'Users:one_to_one_attachment' message.conversation_id message.id message.attachment.id %}" target="_blank">
+                                📎 {{ message.attachment.file.name }}
+                            </a>
+                        </div>
+                    {% endif %}
+                    {% if message.is_message_present %}
+                        <span class="encrypted-text" id="{{ forloop.counter0 }}">{{ message.message_encrypted }}</span>
+                    {% endif %}
+                    
                     <div class="timestamp">
                         {{ message.time|time:"H:i A" }}
                         {% if message.sender == user and message.read %} ✔✔ {% endif %}
@@ -166,6 +177,33 @@
                 return null;
             }
         }
+
+
+        async function encrypt_attachments(file,decrypted_aes_key){
+            AES_KEY_IN_CRYPTO = await crypto.subtle.importKey(
+                                    "raw",
+                                    decrypted_aes_key,
+                                    { name: "AES-GCM" },
+                                    true,
+                                    ["encrypt"]
+                                );
+            
+            const iv = crypto.getRandomValues(new Uint8Array(12));
+
+            const fileBuffer = await file.arrayBuffer();
+
+            const encryptedData = await crypto.subtle.encrypt(
+                { name: "AES-GCM", iv: iv },
+                AES_KEY_IN_CRYPTO,
+                fileBuffer
+            );
+
+            const combinedData = new Uint8Array(iv.length + encryptedData.byteLength);
+            combinedData.set(iv, 0);
+            combinedData.set(new Uint8Array(encryptedData), iv.length);
+
+            return new Blob([combinedData], { type: file.type });
+        }
         
 
         const chatForm = document.getElementById("chatForm");
@@ -233,6 +271,8 @@
                 return;
             }
             console.log(message)
+            
+
 
             const private_key = await pem_format_to_crypto_format(USER_PRIVATE_KEY,1)
             console.log(private_key)
@@ -254,23 +294,27 @@
             console.log(AES_KEY)
     
             const csrfToken = document.querySelector("[name=csrfmiddlewaretoken]").value;
-
-            const encrypted_data = await encrypt_message(message,AES_KEY);
-            const encrypted_msg = encrypted_data["encrypted_msg"];
-            const iv = encrypted_data["iv"];
-            
-            const url = "{% url 'Users:send_one_to_one_message' friend.user_id %}";
             const formData = new FormData();
+            let encrypted_data = null;
+            let encrypted_msg = null;
+
+            if (message) {
+                encrypted_data = await encrypt_message(message, AES_KEY);
+                encrypted_msg = encrypted_data["encrypted_msg"];
+                formData.append('encrypted_msg', JSON.stringify(encrypted_msg));
+            }
+
+            const url = "{% url 'Users:send_one_to_one_message' friend.user_id %}";
+            
+            if (file) {
+                formData.append('file', file);  
+            }
             const response = await fetch(url, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
                     'X-CSRFToken': csrfToken,  
                 },
-                body: JSON.stringify({
-                    encrypted_msg: encrypted_msg,  
-                    iv: iv  
-                }),
+                body:formData
             });
             const responseText = await response.text();
             messageInput.value = "";

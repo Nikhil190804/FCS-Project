@@ -26,7 +26,19 @@
             {% for message in messages %}
                 <div class="message {% if message.sender == user %}user-message{% else %}other-message{% endif %}">
                     <p class="sender-name">{{ message.sender.username }}</p>
-                    <span class="message-text" id="{{ forloop.counter0 }}">{{ message.message_encrypted }}</span>
+                    
+                    {% if message.is_attachment_present %}
+                        <div class="attachment">
+                            <a href="{% url 'Users:group_attachment' group.id message.id message.attachment.id %}" target="_blank">
+                                📎 {{ message.attachment.file.name }}
+                            </a>
+                        </div>
+                    {% endif %}
+
+                    {% if message.is_message_present %}
+                        <span class="message-text" id="{{ forloop.counter0 }}">{{ message.message_encrypted }}</span>
+                    {% endif %}
+
                     <div class="timestamp">
                         {{ message.time|time:"H:i A" }}
                         {% if message.sender == user and message.read %} ✔✔ {% endif %}
@@ -253,24 +265,30 @@
                 console.log(AES_KEY)
         
                 const csrfToken = document.querySelector("[name=csrfmiddlewaretoken]").value;
-    
-                const encrypted_data = await encrypt_message(message,AES_KEY);
-                const encrypted_msg = encrypted_data["encrypted_msg"];
-                const iv = encrypted_data["iv"];
+
+                const formData = new FormData();
+                let encrypted_data = null;
+                let encrypted_msg = null;
+
+                if (message) {
+                    encrypted_data = await encrypt_message(message, AES_KEY);
+                    encrypted_msg = encrypted_data["encrypted_msg"];
+                    formData.append('encrypted_msg', JSON.stringify(encrypted_msg));
+                }
                 
                 const url = "{% url 'Users:send_group_message' group.id %}";
-                const formData = new FormData();
+
+                if (file) {
+                    formData.append('file', file);  
+                }
                 const response = await fetch(url, {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json',
                         'X-CSRFToken': csrfToken,  
                     },
-                    body: JSON.stringify({
-                        encrypted_msg: encrypted_msg,  
-                        iv: iv  
-                    }),
+                    body:formData,
                 });
+
                 const responseText = await response.text();
                 messageInput.value = "";
                 if(response.ok){

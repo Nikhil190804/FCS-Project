@@ -1,5 +1,6 @@
 from django.shortcuts import render
 from django.http import HttpResponse, JsonResponse
+from django.http import FileResponse, HttpResponseForbidden, Http404
 from .models import User
 from .models import Friendship
 from .models import *
@@ -423,17 +424,52 @@ def send_one_to_one_message(request,reciever_id):
         ).first()
 
         if(conversation):
-            data = json.loads(request.body)
-            message_encrypted = base64.b64decode(data["encrypted_msg"])  
-            message_iv = base64.b64decode(data["iv"])  
-            new_message = OnetoOneMessage.objects.create(
-                conversation=conversation,
-                sender=sender,
-                receiver=reciever,
-                encrypted_message_content=message_encrypted,
-                encryption_iv=message_iv
-            )
-            new_message.save()
+            encrypted_msg_data = request.POST.get('encrypted_msg')
+            file = request.FILES.get('file')
+            is_message = False
+            is_attachment = False
+            if(encrypted_msg_data):
+                encrypted_msg_data=json.loads(encrypted_msg_data)
+                message_encrypted = base64.b64decode(encrypted_msg_data)   
+                is_message=True
+            if(file):
+                is_attachment=True
+
+            if(is_message):
+                new_message = OnetoOneMessage.objects.create(
+                    conversation=conversation,
+                    sender=sender,
+                    receiver=reciever,
+                    encrypted_message_content=message_encrypted,
+                    is_message_present=True
+                )
+                if(is_attachment):
+                    attachment = OneToOneAttachment.objects.create(
+                        conversation=conversation,
+                        message=new_message,
+                        file=file,
+                    )
+                    attachment.save()
+                    new_message.attachment=attachment
+                    new_message.is_attachment_present=True
+                new_message.save()
+            else:
+                new_message = OnetoOneMessage.objects.create(
+                    conversation=conversation,
+                    sender=sender,
+                    receiver=reciever,
+                    is_message_present=False,
+                )
+                attachment = OneToOneAttachment.objects.create(
+                        conversation=conversation,
+                        message=new_message,
+                        file=file,
+                    )
+                attachment.save()
+                new_message.is_attachment_present=True
+                new_message.attachment=attachment
+                new_message.save()
+
             return HttpResponse("done",status=200)
         
         else:
@@ -462,11 +498,22 @@ def send_one_to_one_message(request,reciever_id):
             for message in messages:
                 encrypted_msg_base64 = base64.b64encode(message.encrypted_message_content).decode('utf-8')
                 temp_msg = {}
-                temp_msg["message_encrypted"]=encrypted_msg_base64
                 temp_msg["sender"]=message.sender
                 temp_msg["reciever"]=message.receiver
                 temp_msg["time"]=message.sent_at
                 temp_msg["read"]=message.is_read
+                temp_msg["conversation_id"]=conversation.id
+                temp_msg["id"]=message.id
+                
+                if(message.is_message_present):
+                    temp_msg["message_encrypted"]=encrypted_msg_base64
+                    temp_msg["is_message_present"]=True
+
+                if(message.is_attachment_present):
+                    temp_msg["attachment"]=message.attachment
+                    temp_msg["is_attachment_present"]=True
+
+
                 old_messages.append(temp_msg)
 
             CONTEXT = {}
@@ -497,6 +544,26 @@ def send_one_to_one_message(request,reciever_id):
         }
 
     return render(request,"Users/one_to_one_message.html",context )
+
+
+
+def one_to_one_attachment(request, conversation_id, message_id, attachment_id):
+    current_user_id = request.session.get("current_user")
+    conversation = OnetoOneConversation.objects.filter(id=conversation_id).first()
+    if not conversation:
+        raise Http404("Conversation not found")
+    if current_user_id not in [conversation.user_a.user_id, conversation.user_b.user_id]:
+        return HttpResponseForbidden("You are not authorized to access this conversation.")
+    
+    attachment = OneToOneAttachment.objects.filter(
+            id=attachment_id, message_id=message_id, conversation_id=conversation_id
+        ).first()
+    
+    if not attachment:
+        raise Http404("Attachment not found")
+    
+    return FileResponse(attachment.file, as_attachment=False)
+    
 
 
 
@@ -577,14 +644,50 @@ def send_group_message(request,group_id):
         group = Group.objects.get(pk=group_id)
         user_joined_groups = GroupMember.objects.filter(user=user,group=group)
         if(user_joined_groups.exists()):
-            data = json.loads(request.body)
-            message_encrypted = base64.b64decode(data["encrypted_msg"]) 
-            new_grp_msg = GroupMessages.objects.create(
-                group = group,
-                sender=user,
-                encrypted_message_content=message_encrypted,
-            )
-            new_grp_msg.save()
+            encrypted_msg_data = request.POST.get('encrypted_msg')
+            file = request.FILES.get('file')
+            is_message = False
+            is_attachment = False
+            if(encrypted_msg_data):
+                encrypted_msg_data=json.loads(encrypted_msg_data)
+                message_encrypted = base64.b64decode(encrypted_msg_data)   
+                is_message=True
+            if(file):
+                is_attachment=True
+            
+            if(is_message):
+                new_grp_message = GroupMessages.objects.create(
+                    group=group,
+                    sender=user,
+                    encrypted_message_content=message_encrypted,
+                    is_message_present=True
+                )
+                if(is_attachment):
+                    attachment = GroupAttachment.objects.create(
+                        group=group,
+                        message=new_grp_message,
+                        file=file,
+                    )
+                    attachment.save()
+                    new_grp_message.attachment=attachment
+                    new_grp_message.is_attachment_present=True
+                new_grp_message.save()
+            else:
+                new_group_message = GroupMessages.objects.create(
+                    group=group,
+                    sender=user,
+                    is_message_present=False,
+                )
+                attachment = GroupAttachment.objects.create(
+                        group=group,
+                        message=new_group_message,
+                        file=file,
+                    )
+                attachment.save()
+                new_group_message.is_attachment_present=True
+                new_group_message.attachment=attachment
+                new_group_message.save()
+
             return HttpResponse("done",status=200)
         else:
             return HttpResponse("Not allowed",status=403)
@@ -608,9 +711,17 @@ def send_group_message(request,group_id):
             for message in group_messages:
                 encrypted_msg_base64 = base64.b64encode(message.encrypted_message_content).decode('utf-8')
                 temp_msg = {}
-                temp_msg["message_encrypted"]=encrypted_msg_base64
                 temp_msg["sender"]=message.sender
                 temp_msg["time"]=message.sent_at
+                temp_msg["id"]=message.id
+
+                if(message.is_message_present):
+                    temp_msg["message_encrypted"]=encrypted_msg_base64
+                    temp_msg["is_message_present"]=True
+
+                if(message.is_attachment_present):
+                    temp_msg["attachment"]=message.attachment
+                    temp_msg["is_attachment_present"]=True
                 old_messages.append(temp_msg)
 
             CONTEXT = {}
@@ -661,6 +772,20 @@ def view_group(request,group_id):
         return HttpResponse("not allowed to show")
 
     
+def group_attachment(request, group_id, message_id, attachment_id):
+    current_user_id = request.session.get("current_user")
+    group_member = GroupMember.objects.filter(group=group_id,user=current_user_id).first()
+    if not group_member:
+        return HttpResponseForbidden("You are not authorized to access this conversation.")
+    
+    attachment = GroupAttachment.objects.filter(
+            id=attachment_id, message_id=message_id, group=group_id
+        ).first()
+    
+    if not attachment:
+        raise Http404("Attachment not found")
+    
+    return FileResponse(attachment.file, as_attachment=False)
 
 
 
