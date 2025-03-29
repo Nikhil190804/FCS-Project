@@ -1,0 +1,337 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{% static 'Users/one_to_one_message.css' %}">
+    <title>Chat with {{ friend.username }}</title>
+</head>
+<body>
+
+    <div class="chat-container">
+        <div class="chat-header">
+            <div style="display: flex; align-items: center;">
+                <img src="{{ friend.profile_picture.url }}" alt="{{ friend.username }}'s Profile">
+                <strong>{{ friend.username }}</strong>
+            </div>
+            <button id="refreshMessages">🔄 Refresh Chat</button>
+            <a href="{% url 'Users:home' %}">Home</a>
+        </div>
+
+        <div class="messages-container">
+            {% for message in messages %}
+                <div class="message {% if message.sender == user %}user-message{% else %}friend-message{% endif %}">
+
+                    {% if message.is_attachment_present %}
+                        <div class="attachment">
+                            <a href="{% url 'Users:one_to_one_attachment' message.conversation_id message.id message.attachment.id %}" target="_blank">
+                                📎 {{ message.attachment.file.name }}
+                            </a>
+                        </div>
+                    {% endif %}
+                    {% if message.is_message_present %}
+                        <span class="encrypted-text" id="{{ forloop.counter0 }}">{{ message.message_encrypted }}</span>
+                    {% endif %}
+                    
+                    <div class="timestamp">
+                        {{ message.time|time:"H:i A" }}
+                        {% if message.sender == user and message.read %} ✔✔ {% endif %}
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+
+        <form id="chatForm" class="chat-footer" enctype="multipart/form-data">
+            {% csrf_token %}
+            <input type="text" id="messageInput" name="message" placeholder="Type a message..." >
+            <input type="file" id="fileInput" name="file">
+            <button type="submit">Send</button>
+        </form>
+        
+    </div>
+
+
+
+    <script>
+
+        document.getElementById("refreshMessages").addEventListener("click", async function() {
+            window.location.reload();
+        });
+
+        function get_private_key(username){
+            const key = localStorage.getItem(username+"private_key");
+            if (key) {
+                return key;
+            } else {
+                return null;
+            }
+        };
+
+
+        function convert_base64_to_Uintarray(base64_key){
+            const key = Uint8Array.from(atob(base64_key), c => c.charCodeAt(0));
+            return key;
+        };
+
+        async function pem_format_to_crypto_format(key_in_pem,flag){
+            // 1 for private
+            // 0 for public
+            let pemHeader;
+            let pemFooter;
+            let pemContents;
+            let format;
+            let usage_of_key;
+            if(flag==1){
+                pemHeader = "-----BEGIN PRIVATE KEY-----";
+                pemFooter = "-----END PRIVATE KEY-----";
+                pemContents = key_in_pem.replace(pemHeader, "").replace(pemFooter, "").replace(/\r?\n/g, "", "").trim();
+                format = "pkcs8"; 
+                usage_of_key = ["decrypt"]; 
+
+            }
+            else{
+                pemHeader = "-----BEGIN PUBLIC KEY-----";
+                pemFooter = "-----END PUBLIC KEY-----";
+                pemContents = key_in_pem.replace(pemHeader, "").replace(pemFooter, "").replace(/\r?\n/g, "", "").trim();
+                format = "spki"; 
+                usage_of_key = ["encrypt"]; 
+            }
+            
+            console.log(pemContents)
+
+            const binaryDer = Uint8Array.from(atob(pemContents), c => c.charCodeAt(0)).buffer;
+            console.log(binaryDer)
+
+            return await crypto.subtle.importKey(
+                format, 
+                binaryDer,
+                {
+                    name: "RSA-OAEP",
+                    hash: "SHA-256"
+                },
+                true,  
+                usage_of_key 
+            );
+        }
+
+        async function encrypt_message(message,decrypted_aes_key){
+            AES_KEY_IN_CRYPTO = await crypto.subtle.importKey(
+                                    "raw",
+                                    decrypted_aes_key,
+                                    { name: "AES-GCM" },
+                                    true,
+                                    ["encrypt"]
+                                );
+            
+            const iv = crypto.getRandomValues(new Uint8Array(12));
+
+            const encoder = new TextEncoder();
+            const encodedMessage = encoder.encode(message);
+
+            const encrypted_msg = await crypto.subtle.encrypt({name: "AES-GCM",iv: iv},AES_KEY_IN_CRYPTO,encodedMessage);
+
+            const combined_data = new Uint8Array(iv.length + encrypted_msg.byteLength);
+            combined_data.set(iv, 0);
+            combined_data.set(new Uint8Array(encrypted_msg), iv.length);
+
+            return {
+                encrypted_msg: btoa(String.fromCharCode(...combined_data)), 
+                iv: btoa(String.fromCharCode(...iv))  
+            };
+        }
+
+        async function decrypt_message(encrypted_data, decrypted_aes_key) {
+            console.log(encrypted_data)
+            const combined_data = encrypted_bytes = new Uint8Array(
+                atob(encrypted_data).split("").map(char => char.charCodeAt(0))
+            );
+            console.log("1"+combined_data)
+        
+            const iv = combined_data.slice(0, 12);
+            console.log("2"+iv)
+        
+            const encrypted_msg = combined_data.slice(12);
+            console.log("3"+encrypted_msg)
+        
+            const AES_KEY_IN_CRYPTO = await crypto.subtle.importKey(
+                "raw",
+                decrypted_aes_key,
+                { name: "AES-GCM" },
+                true,
+                ["decrypt"]
+            );
+            console.log("4"+AES_KEY_IN_CRYPTO)
+        
+            try {
+                const decrypted_msg = await crypto.subtle.decrypt(
+                    { name: "AES-GCM", iv: iv },
+                    AES_KEY_IN_CRYPTO,
+                    encrypted_msg
+                );
+        
+                return new TextDecoder().decode(decrypted_msg);
+            } catch (error) {
+                console.error("Decryption failed:", error);
+                return null;
+            }
+        }
+
+
+        async function encrypt_attachments(file,decrypted_aes_key){
+            AES_KEY_IN_CRYPTO = await crypto.subtle.importKey(
+                                    "raw",
+                                    decrypted_aes_key,
+                                    { name: "AES-GCM" },
+                                    true,
+                                    ["encrypt"]
+                                );
+            
+            const iv = crypto.getRandomValues(new Uint8Array(12));
+
+            const fileBuffer = await file.arrayBuffer();
+
+            const encryptedData = await crypto.subtle.encrypt(
+                { name: "AES-GCM", iv: iv },
+                AES_KEY_IN_CRYPTO,
+                fileBuffer
+            );
+
+            const combinedData = new Uint8Array(iv.length + encryptedData.byteLength);
+            combinedData.set(iv, 0);
+            combinedData.set(new Uint8Array(encryptedData), iv.length);
+
+            return new Blob([combinedData], { type: file.type });
+        }
+        
+
+        const chatForm = document.getElementById("chatForm");
+        const messageInput = document.getElementById("messageInput");
+        const USER_PUBLIC_KEY = `{{ USER_PUBLIC_KEY|escapejs }}`;
+        const AES_KEY_ENCRYPTED = "{{ AES_KEY_ENCRYPTED|escapejs }}";  
+        const username = "{{ USERNAME|escapejs }}"
+        const USER_PRIVATE_KEY =  get_private_key(username)
+        if(!USER_PRIVATE_KEY){
+            alert("ERROR ERROR ERROR!!");
+        }
+        const messages = document.querySelectorAll(".encrypted-text");
+
+        document.addEventListener("DOMContentLoaded", async function () {
+            const private_key = await pem_format_to_crypto_format(USER_PRIVATE_KEY,1)
+            const public_key = await pem_format_to_crypto_format(USER_PUBLIC_KEY,0)
+            const encrypted_aes_key = convert_base64_to_Uintarray(AES_KEY_ENCRYPTED)
+
+            const decrypted_aes_key = await crypto.subtle.decrypt(
+                {
+                    name: "RSA-OAEP"
+                },
+                private_key,
+                encrypted_aes_key
+            );
+
+            AES_KEY = new Uint8Array(decrypted_aes_key);
+            console.log("here"+AES_KEY)
+
+            const all_messages = document.querySelectorAll(".encrypted-text");
+
+            for(let msg = 0;msg<all_messages.length;msg++){
+                const encrypted_msg = all_messages[msg].innerText.trim();
+                if(!encrypted_msg){
+                    continue;
+                }
+                try {
+                    const decryptedText = await decrypt_message(encrypted_msg, AES_KEY);
+                    
+                    if (decryptedText) {
+                        all_messages[msg].innerText = decryptedText;
+                    } else {
+                        all_messages[msg].innerText = "[Decryption Failed]"; 
+                    }
+                } catch (error) {
+                    console.error("Error decrypting message:", error);
+                    all_messages[msg].innerText = "[Error]";
+                }
+  
+            }
+            const chatContainer = document.querySelector(".messages-container"); 
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+
+        });
+        
+        
+
+        chatForm.addEventListener("submit", async function (event) {
+            event.preventDefault(); 
+    
+            const message = messageInput.value.trim();
+            const file_input = document.getElementById("fileInput");
+            const file = file_input.files[0];
+            if (!message && !file){
+                return;
+            }
+            console.log(message)
+            
+
+
+            const private_key = await pem_format_to_crypto_format(USER_PRIVATE_KEY,1)
+            console.log(private_key)
+            const public_key = await pem_format_to_crypto_format(USER_PUBLIC_KEY,0)
+            console.log(public_key)
+            const encrypted_aes_key = convert_base64_to_Uintarray(AES_KEY_ENCRYPTED)
+            console.log(encrypted_aes_key)
+
+            const decrypted_aes_key = await crypto.subtle.decrypt(
+                {
+                    name: "RSA-OAEP"
+                },
+                private_key,
+                encrypted_aes_key
+            );
+            console.log(decrypted_aes_key)
+
+            AES_KEY = new Uint8Array(decrypted_aes_key);
+            console.log(AES_KEY)
+    
+            const csrfToken = document.querySelector("[name=csrfmiddlewaretoken]").value;
+            const formData = new FormData();
+            let encrypted_data = null;
+            let encrypted_msg = null;
+
+            if (message) {
+                encrypted_data = await encrypt_message(message, AES_KEY);
+                encrypted_msg = encrypted_data["encrypted_msg"];
+                formData.append('encrypted_msg', JSON.stringify(encrypted_msg));
+            }
+
+            const url = "{% url 'Users:send_one_to_one_message' friend.user_id %}";
+            
+            if (file) {
+                formData.append('file', file);  
+            }
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrfToken,  
+                },
+                body:formData
+            });
+            const responseText = await response.text();
+            messageInput.value = "";
+            if(response.ok){
+                alert("Message Sent!")
+                window.location.reload();
+            }
+            else{
+                alert(`Message Not Sent!: ${responseText}`)
+            }
+            return;
+
+
+        });
+
+        
+    </script>
+
+</body>
+</html>

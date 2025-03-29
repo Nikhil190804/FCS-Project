@@ -19,7 +19,7 @@
                     <div id="person_card">
                         <img id="profile_pic" src="{{ person.profile_picture.url }}" alt="{{ person.username }}'s Profile">
                         <p id="username">{{ person.username }}</p>
-                        <a href="{% url 'Users:login' %}" id="send_message_btn">Send Message</a>
+                        <a href="{% url 'Users:send_one_to_one_message' person.user_id %}" id="send_message_btn">Send Message</a>
                     </div>
                 {% endfor %}
             </div>

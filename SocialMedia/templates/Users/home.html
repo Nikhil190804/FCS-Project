@@ -31,9 +31,8 @@
             <h2>Dashboard</h2>
             <div class="buttons">
                 <a href="{% url 'Users:search_users' %}" class="btn">🔍 Search Users</a>
-                <a href="{% url 'Users:messages' %}" class="btn">💬 Your Messages</a>
-                <a href="{% url 'MarketPlace:listings' %}" class="btn">🛒 Marketplace</a>
-            
+                <a href="{% url 'Users:messages' %}" class="btn">💬 Your 1:1 Messages</a>
+                <a href="{% url 'Users:show_groups' %}" class="btn">💬 Group Messages</a>
             </div>
         </div>
     </main>
@@ -41,5 +40,19 @@
     <footer>
         <p>Team: 404s</p>
     </footer>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const USER_PRIVATE_KEY =  "{{ private_key|default:''|escapejs }}";
+            const username = "{{ user_name|escapejs }}"
+            if (!USER_PRIVATE_KEY) {
+                return;
+            } else {
+                localStorage.setItem(username+"private_key", USER_PRIVATE_KEY);
+            }
+            
+        });
+        
+    </script>
 </body>
 </html>

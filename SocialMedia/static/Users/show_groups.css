@@ -1,0 +1,102 @@
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f5f5f5;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+
+#group_container {
+    width: 90%;
+    max-width: 500px;
+    background: white;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    border-radius: 10px;
+    padding: 20px;
+    text-align: center;
+}
+
+#heading {
+    font-size: 20px;
+    margin-bottom: 15px;
+}
+
+#group_list {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.group_card {
+    background: #ffffff;
+    padding: 15px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.group_profile_pic {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid #007bff;
+}
+
+.group_info {
+    flex-grow: 1;
+    text-align: left;
+}
+
+.group_name {
+    font-size: 16px;
+    font-weight: bold;
+}
+
+.unread_count {
+    font-size: 14px;
+    color: #666;
+}
+
+.msg_send_btn {
+    text-decoration: none;
+    background-color: #007bff;
+    color: white;
+    padding: 8px 12px;
+    border-radius: 5px;
+    font-weight: bold;
+    transition: 0.3s ease-in-out;
+}
+
+.msg_send_btn:hover {
+    background-color: #0056b3;
+}
+
+#no_groups {
+    font-size: 16px;
+    color: #333;
+}
+
+.action_buttons {
+    margin-top: 20px;
+}
+
+.back_btn, .create_group_btn {
+    text-decoration: none;
+    background-color: #25D366;
+    color: white;
+    padding: 10px 20px;
+    border-radius: 5px;
+    font-weight: bold;
+    transition: 0.3s ease-in-out;
+    margin: 5px;
+}
+
+.back_btn:hover, .create_group_btn:hover {
+    background-color: #1db954;
+}

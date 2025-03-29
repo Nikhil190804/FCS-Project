@@ -20,14 +20,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-# SECRET_KEY = env('SECRET_KEY')
-
-
-SECRET_KEY='django-insecure-$#0w$fx@#&z$*xsxnu!4xftm5f87ivo8vk(7rf)_^r0^gz2crr'
-DEBUG=True
+SECRET_KEY = 'django-insecure-$#0w$fx@#&z$*xsxnu!4xftm5f87ivo8vk(7rf)_^r0^gz2crr'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-# DEBUG = env('DEBUG')
+DEBUG = True
 
 ALLOWED_HOSTS = []
 
@@ -42,7 +38,6 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'Users',
-    'MarketPlace'
 ]
 
 MIDDLEWARE = [
@@ -87,7 +82,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'socialmediadb',
         'USER': 'root',
-        'PASSWORD': 'root123',
+        'PASSWORD': 'password',
         'HOST': 'localhost',  
         'PORT': '3306',
     }
@@ -118,7 +113,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Asia/Kolkata'
 
 USE_I18N = True
 
@@ -160,5 +155,3 @@ EMAIL_USE_TLS = True  # Set to False if using SSL (port 465)
 EMAIL_HOST_USER = "the404s.fcs@gmail.com"
 EMAIL_HOST_PASSWORD = "xevy dlww thky aomt"  # Use an app password (not your real password!)
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
-
-
