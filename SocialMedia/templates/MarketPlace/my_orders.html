@@ -1,0 +1,48 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Orders</title>
+    <link rel="stylesheet" href="{% static 'MarketPlace/orders.css' %}">
+</head>
+<body>
+    <header>
+        <div class="welcome">
+            📦 <span>My Orders</span>
+        </div>
+    </header>
+
+    <main>
+        <div class="orders-container">
+            {% if orders %}
+                {% for order in orders %}
+                    <div class="order-item">
+                        <h3>🆔 Order ID: {{ order.id }}</h3>
+                        <p>📅 Date: {{ order.created_at|date:"F d, Y H:i" }}</p>
+                        <p>💰 Total Price: ₹{{ order.total_price|floatformat:2 }}</p>
+                        <h4>🛍️ Items:</h4>
+                        <ul>
+                            {% for item in order.order_items.all %}
+                                <li>
+                                    {{ item.product.name }} (x{{ item.quantity }}) - ₹{{ item.price_at_purchase|floatformat:2 }} each
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    <hr>
+                {% endfor %}
+            {% else %}
+                <p class="empty-orders">📭 You have no orders yet.</p>
+            {% endif %}
+        </div>
+
+        <a href="{% url 'MarketPlace:listings' %}" class="back-btn">⬅ Back to Listings</a>
+    </main>
+
+    <footer>
+        <p>Team: 404s</p>
+    </footer>
+</body>
+</html>
