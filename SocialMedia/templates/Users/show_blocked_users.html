@@ -1,0 +1,44 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blocked Users</title>
+    <link rel="stylesheet" href="{% static 'Users/show_blocked_users.css' %}">
+</head>
+<body>
+    <div class="container">
+        <a href="{% url 'Users:home' %}" class="home-link">🏠 Home</a>
+        <h2>Blocked Users</h2>
+
+        {% if blocked_users %}
+            <div class="user-list">
+                {% for user in blocked_users %}
+                    <div class="user-card">
+                        <p>{{ user.username }}</p>
+                        <a href="{% url 'Users:unblock_user' user.user_id %}" class="unblock-btn">Unblock</a>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="no-blocked">No blocked users</p>
+        {% endif %}
+
+        {% if messages %}
+            <div class="messages">
+                {% for message in messages %}
+                    <div class="message {{ message.tags }}">{{ message }}</div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    </div>
+
+    <script>
+        setTimeout(function() {
+            document.querySelector('.messages').style.display = 'none';
+        }, 3000);
+    </script>
+    
+</body>
+</html>

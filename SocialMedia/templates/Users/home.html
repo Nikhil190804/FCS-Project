@@ -37,6 +37,16 @@
         </div>
     </main>
 
+    {% if messages %}
+        <div class="messages">
+            {% for message in messages %}
+                <div {% if message.tags %} class="{{ message.tags }}" {% endif %}>
+                    {{ message }}
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+
     <footer>
         <p>Team: 404s</p>
     </footer>
@@ -52,6 +62,10 @@
             }
             
         });
+
+        setTimeout(function() {
+            document.querySelector('.messages').style.display = 'none';
+        }, 3000);
         
     </script>
 </body>

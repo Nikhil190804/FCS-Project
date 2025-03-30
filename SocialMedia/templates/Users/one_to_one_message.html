@@ -17,6 +17,7 @@
                 <strong>{{ friend.username }}</strong>
             </div>
             <button id="refreshMessages">🔄 Refresh Chat</button>
+            <button id="more_options_btn">⚙️ More Options</button>
             <a href="{% url 'Users:home' %}">Home</a>
         </div>
 
@@ -50,6 +51,14 @@
             <button type="submit">Send</button>
         </form>
         
+    </div>
+
+
+    <div class="more-options">
+        <h2>More Options</h2>
+        <a href="{% url 'Users:block_user' friend.user_id %}">Block User</a>
+        <a href="{% url 'Users:home' %}">Report User</a>
+        <a class="close-btn" id="closeOptions">Close</a>
     </div>
 
 
@@ -218,6 +227,16 @@
         const messages = document.querySelectorAll(".encrypted-text");
 
         document.addEventListener("DOMContentLoaded", async function () {
+
+            document.getElementById("more_options_btn").addEventListener("click", function() {
+                const moreOptions = document.querySelector(".more-options");
+                moreOptions.classList.toggle("show");
+            });
+            
+            document.getElementById("closeOptions").addEventListener("click", function() {
+                document.querySelector(".more-options").classList.remove("show");
+            });
+
             const private_key = await pem_format_to_crypto_format(USER_PRIVATE_KEY,1)
             const public_key = await pem_format_to_crypto_format(USER_PUBLIC_KEY,0)
             const encrypted_aes_key = convert_base64_to_Uintarray(AES_KEY_ENCRYPTED)

@@ -11,14 +11,30 @@
 <body>
 
     <div id="messages_container">
+        <h2 id="heading">Your Messages</h2>
+        
         {% if message_data %}
-            <!-- Placeholder for future message preview & replies -->
-            <div id="messages_preview"></div>
+            <div id="messages_list">
+                {% for msg in message_data %}
+                    <div class="message_card">
+                        <img class="profile_pic" src="{{ msg.sender.profile_picture.url }}" alt="{{ msg.sender.username }}'s Profile">
+                        <div class="message_info">
+                            <p class="username">{{ msg.sender.username }}</p>
+                            <p class="unread_count">Unread Messages: {{ msg.unread_count }}</p>
+                        </div>
+                        <a href="{% url 'Users:send_one_to_one_message' msg.sender.user_id %}" class="reply_btn">Chat</a>
+                    </div>
+                {% endfor %}
+            </div>
         {% else %}
             <div id="no_messages">
-                <a href="{% url 'Users:start_conversation' %}" id="start_conversation">No messages yet! Start a new conversation</a>
+                <p>No messages yet!</p>
             </div>
         {% endif %}
+
+        <div id="start_new_conversation">
+            <a href="{% url 'Users:start_conversation' %}" id="start_conversation">Start a new conversation</a>
+        </div>
     </div>
 
 </body>
