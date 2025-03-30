@@ -1,31 +1,76 @@
-
 body {
     font-family: Arial, sans-serif;
-    background-color: #f5f5f5;
+    background-color: #f4f4f4;
     margin: 0;
-    padding: 0;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
+    padding: 20px;
 }
 
 #messages_container {
-    width: 90%;
-    max-width: 500px;
+    max-width: 600px;
+    margin: auto;
     background: white;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-    border-radius: 10px;
     padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+}
+
+#heading {
     text-align: center;
+    color: #333;
+}
+
+#messages_list {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.message_card {
+    display: flex;
+    align-items: center;
+    background: #fff;
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: 0px 0px 5px rgba(0, 0, 0, 0.1);
+}
+
+.profile_pic {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    margin-right: 15px;
+}
+
+.message_info {
+    flex-grow: 1;
+}
+
+.username {
+    font-weight: bold;
+    font-size: 16px;
+    margin: 0;
+}
+
+.unread_count {
+    color: red;
+    font-size: 14px;
+}
+
+.reply_btn {
+    background: #007bff;
+    color: white;
+    text-decoration: none;
+    padding: 8px 12px;
+    border-radius: 5px;
+}
+
+.reply_btn:hover {
+    background: #0056b3;
 }
 
 
-#messages_preview {
-    min-height: 300px;
-}
-
-#no_messages {
+#start_new_conversation, #no_messages{
+    justify-self: center;
     padding: 20px;
     font-size: 16px;
     color: #333;

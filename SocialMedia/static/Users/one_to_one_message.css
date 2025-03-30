@@ -2,10 +2,12 @@ body {
     font-family: Arial, sans-serif;
     background-color: #f5f5f5;
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     align-items: center;
+    justify-content: center;
     height: 100vh;
     margin: 0;
+    gap: 50px;
 }
 .chat-container {
     margin-top: 20px;
@@ -115,4 +117,48 @@ body {
 
 #refreshMessages:hover {
     background-color: #025c53e4;
+}
+
+.more-options {
+    display: none; 
+    margin-top: 20px;
+    width: 200px;
+    height: 90vh;
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    flex-direction: column;
+    row-gap: 20px;
+    padding: 15px;
+}
+
+.more-options.show {
+    display: flex; 
+}
+
+.more-options h2{
+    text-align: center;
+}
+
+.more-options a {
+    padding: 10px;
+    font-size: 16px;
+    border: none;
+    background-color: #007bff;
+    color: white;
+    cursor: pointer;
+    border-radius: 5px;
+    text-decoration: none;
+}
+
+.more-options a:hover {
+    background-color: #0056b3;
+}
+
+.more-options .close-btn {
+    background-color: #dc3545;
+}
+
+.more-options .close-btn:hover {
+    background-color: #b02a37;
 }

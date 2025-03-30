@@ -1,0 +1,96 @@
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f5f5f5;
+    margin: 0;
+    padding: 20px;
+}
+
+.container {
+    max-width: 600px;
+    margin: 0 auto;
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+    text-align: center;
+}
+
+.home-link {
+    text-decoration: none;
+    color: #3498db;
+    font-size: 18px;
+    font-weight: bold;
+}
+
+h2 {
+    margin-bottom: 20px;
+    color: #2c3e50;
+}
+
+.user-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.user-card {
+    background: linear-gradient(to right, #ff9a9e, #fad0c4);
+    padding: 15px;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: transform 0.3s ease;
+}
+
+.user-card:hover {
+    transform: scale(1.05);
+}
+
+.user-card p {
+    color: #2c3e50;
+    font-weight: bold;
+    font-size: 16px;
+}
+
+.unblock-btn {
+    background: #e74c3c;
+    color: white;
+    text-decoration: none;
+    padding: 8px 12px;
+    border-radius: 5px;
+    font-weight: bold;
+    transition: background 0.3s ease, transform 0.2s;
+}
+
+.unblock-btn:hover {
+    background: #c0392b;
+    transform: scale(1.1);
+}
+
+.no-blocked {
+    color: #777;
+    font-size: 18px;
+    font-weight: bold;
+}
+
+.messages {
+    margin-bottom: 15px;
+    padding: 10px;
+    border-radius: 5px;
+    text-align: center;
+}
+.message {
+    padding: 10px;
+    border-radius: 5px;
+    font-weight: bold;
+}
+.message.success {
+    background-color: #2ecc71;
+    color: white;
+}
+.message.error {
+    background-color: #e74c3c;
+    color: white;
+}
