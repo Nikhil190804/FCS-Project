@@ -12,7 +12,7 @@ import secrets
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.mail import send_mail
 from django.contrib import messages as mem
-from django.db.models import Q
+from django.db.models import Q,Count
 from Crypto.PublicKey import RSA
 from Crypto.Cipher import PKCS1_OAEP
 import base64
@@ -83,6 +83,7 @@ def encrypt_aes_key(aes_key,public_key):
     #encrypted_aes_key_encoded = base64.b64encode(encrypted_aes_key).decode()
     return encrypted_aes_key
 
+
 def validate_user(username,password):
     try:
         user = User.objects.get(username=username)  
@@ -126,6 +127,20 @@ def generate_otp(length):
     return OTP
   
 
+def check_for_blocked_user(current_user_id, friend_id):
+    try:
+        friendship = Friendship.objects.get(
+            models.Q(from_user_id=current_user_id, to_user_id=friend_id) |
+            models.Q(from_user_id=friend_id, to_user_id=current_user_id)
+        )
+        
+        if ((friendship.from_user_id == current_user_id and friendship.from_user_blocked) or (friendship.to_user_id == current_user_id and friendship.to_user_blocked)):
+            return True
+        return False
+    except Friendship.DoesNotExist:
+        return False  
+
+
 def send_otp_mail(OTP,email):
     subject = "Your OTP Code For SocialMedia"
     message = f"Your OTP code is: {OTP}"
@@ -137,6 +152,7 @@ def send_otp_mail(OTP,email):
         return True,None
     except Exception as e:
         return False,str(e)
+
 
 def handle_signup_request(request):
     if "current_user" in request.session:  
@@ -235,6 +251,7 @@ def create_profile(request):
     else:
         return render(request,"Users/confirm-sign-up.html")
 
+
 def home(request):
     user_id=request.session["current_user"]
     private_key = request.session.get("private_key")
@@ -318,6 +335,7 @@ def settings(request):
         user = User.objects.get(user_id=current_user_id)
         return render(request,'Users/settings.html',{"user":user, "profile":True, "action":True})
 
+
 def change_password(request):
     if(request.method=="POST"):
         print("ho gya ")
@@ -369,6 +387,7 @@ def change_bio(request):
     else:
         return render(request,"Users/change_profile.html",{"bio":True})
 
+
 def change_profile_picture(request):
     if(request.method == "POST"):
         current_user_id = request.session.get("current_user")
@@ -392,7 +411,47 @@ def change_profile_picture(request):
 
 
 def messages(request):
-    return render(request,'Users/messages.html',{ "message_data":False})
+    all_unread_messages = []
+    current_user_id = request.session.get("current_user")
+    current_user = User.objects.get(pk=current_user_id)
+
+    conversations = OnetoOneConversation.objects.filter(
+        Q(user_a=current_user) | Q(user_b=current_user)
+    )
+
+    for conversation in conversations:
+        friendship = conversation.friendship
+        friend = None
+        if(friendship.from_user == current_user):
+            friend=friendship.to_user
+        else:
+            friend=friendship.from_user
+
+        isBlocked = check_for_blocked_user(current_user_id,friend.user_id)
+        if(isBlocked):
+            continue
+        else:
+            # case 1 they have never talked , hence no entry in one to one message
+            if not OnetoOneMessage.objects.filter(conversation=conversation).exists():
+                continue
+
+            # case 2 , when they have talked 
+            unread_count = (
+                OnetoOneMessage.objects
+                .filter(conversation=conversation, receiver=current_user, is_read=False)
+                .count()
+            )
+
+            data_dict = {}
+            data_dict["sender"]=friend
+            data_dict["unread_count"]=unread_count
+            all_unread_messages.append(data_dict)
+
+    if(all_unread_messages==[]):
+        return render(request,'Users/messages.html',{ "message_data":False})
+    else:
+        return render(request,'Users/messages.html',{ "message_data":all_unread_messages})
+
 
 
 def start_conversation(request):
@@ -404,16 +463,28 @@ def start_conversation(request):
     friends_data=[]
     for friend in friends:
         if(friend.user_a==user):
-            friends_data.append(friend.user_b)
+            isBlocked = check_for_blocked_user(user.user_id,friend.user_b.user_id)
+            if(isBlocked):
+                continue
+            else:
+                friends_data.append(friend.user_b)
         else:
-            friends_data.append(friend.user_a)
+            isBlocked = check_for_blocked_user(user.user_id,friend.user_a.user_id)
+            if(isBlocked):
+                continue
+            else:
+                friends_data.append(friend.user_a)
 
     return render(request,"Users/friends.html",{"friends_data":friends_data})
 
 
 
-
 def send_one_to_one_message(request,reciever_id):
+    current_user_id = request.session.get("current_user")
+    isBlocked_or_valid = check_for_blocked_user(current_user_id,reciever_id)
+    if(isBlocked_or_valid):
+        mem.error(request,"Wrong FriendID or Friend has been blocked!!")
+        return redirect("Users:home")
     if(request.method=="POST"):
         current_user_id = request.session.get("current_user")
         sender_id = current_user_id
@@ -498,6 +569,8 @@ def send_one_to_one_message(request,reciever_id):
             for message in messages:
                 encrypted_msg_base64 = base64.b64encode(message.encrypted_message_content).decode('utf-8')
                 temp_msg = {}
+                if(message.sender!=current_user):
+                    message.mark_as_read()
                 temp_msg["sender"]=message.sender
                 temp_msg["reciever"]=message.receiver
                 temp_msg["time"]=message.sent_at
@@ -566,6 +639,77 @@ def one_to_one_attachment(request, conversation_id, message_id, attachment_id):
     
 
 
+def block_user(request,user_id):
+    current_user_id = request.session.get("current_user")
+
+    current_user = get_object_or_404(User,pk=current_user_id)
+    target_user = get_object_or_404(User, pk=user_id)
+
+    friendship = Friendship.objects.filter(
+        Q(from_user=current_user, to_user=target_user) |
+        Q(from_user=target_user, to_user=current_user)
+    ).first()
+
+
+    if(friendship):
+        friendship.block_user(current_user)
+        mem.success(request, f"{target_user.username} Blocked!")
+        return redirect("Users:home")
+
+
+    else:
+        mem.error(request, "Friendship not found.")
+        return redirect("Users:home")
+        
+
+def view_blocked_users(request):
+    current_user_id = request.session.get("current_user")
+    current_user = get_object_or_404(User,pk=current_user_id)
+
+    friendships = Friendship.objects.filter(from_user=current_user) | Friendship.objects.filter(to_user=current_user)
+
+    blocked_users = []
+    for friendship in friendships:
+        if friendship.from_user == current_user and friendship.from_user_blocked:
+            blocked_users.append(friendship.to_user)
+        elif friendship.to_user == current_user and friendship.to_user_blocked:
+            blocked_users.append(friendship.from_user)
+
+    if(blocked_users==[]):
+        return render(request,"Users/show_blocked_users.html")
+    
+    CONTEXT = {"blocked_users":blocked_users}
+    return render(request,"Users/show_blocked_users.html",CONTEXT)
+
+    
+def unblock_user(request,user_id):
+    current_user_id = request.session.get("current_user")
+
+    current_user = get_object_or_404(User,pk=current_user_id)
+    target_user = get_object_or_404(User, pk=user_id)
+
+    friendship = Friendship.objects.filter(
+        Q(from_user=current_user, to_user=target_user) |
+        Q(from_user=target_user, to_user=current_user)
+    ).first()
+
+    if not friendship:
+        #return HttpResponse("h")
+        mem.error(request, "You are not friends with this user.")
+        return redirect("Users:view_blocked_users")
+    
+    if ((friendship.from_user == current_user and not friendship.from_user_blocked) or (friendship.to_user == current_user and not friendship.to_user_blocked)):
+        mem.error(request, "This user is not blocked.")
+        #return HttpResponse("h")
+        return redirect("Users:view_blocked_users")
+
+    friendship.unblock_user(current_user)
+
+    mem.success(request, f"You have successfully unblocked {target_user.username}.")
+    
+    return redirect("Users:view_blocked_users")
+
+
 
 def show_groups(request):
     current_user_id = request.session.get("current_user")
@@ -630,9 +774,17 @@ def create_group(request):
         friends_data=[]
         for friend in friends:
             if(friend.user_a==user):
-                friends_data.append(friend.user_b)
+                isBlocked = check_for_blocked_user(user.user_id,friend.user_b.user_id)
+                if(isBlocked):
+                    continue
+                else:
+                    friends_data.append(friend.user_b)
             else:
-                friends_data.append(friend.user_a)
+                isBlocked = check_for_blocked_user(user.user_id,friend.user_a.user_id)
+                if(isBlocked):
+                    continue
+                else:
+                    friends_data.append(friend.user_a)
         return render(request,"Users/create_group.html",{"friends":friends_data})
 
 

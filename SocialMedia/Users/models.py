@@ -102,6 +102,12 @@ class OnetoOneMessage(models.Model):
         return f"Message from {self.sender.username} to {self.receiver.username}"
     
 
+    def mark_as_read(self):
+        if not self.is_read:
+            self.is_read = True
+            self.save()
+    
+
 class OneToOneAttachment(models.Model):
 
     conversation = models.ForeignKey(
