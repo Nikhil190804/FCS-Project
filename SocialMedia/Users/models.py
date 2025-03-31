@@ -142,11 +142,21 @@ class GroupMember(models.Model):
     aes_key_encrypted = models.BinaryField()
     created_at = models.DateTimeField(auto_now_add=True)
 
+    unread_count = models.BigIntegerField(default=0)
+
     class Meta:
         unique_together = ('group', 'user')
 
     def __str__(self):
         return f"{self.user.username} is a part of {self.group}"
+    
+    def make_unread_zero(self):
+        self.unread_count=0
+        self.save()
+
+    def increase_unread_count(self):
+        self.unread_count=self.unread_count+1
+        self.save()
 
 
 

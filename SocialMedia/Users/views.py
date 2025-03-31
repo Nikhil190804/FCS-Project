@@ -795,6 +795,7 @@ def send_group_message(request,group_id):
         user = User.objects.get(pk=current_user_id)
         group = Group.objects.get(pk=group_id)
         user_joined_groups = GroupMember.objects.filter(user=user,group=group)
+        all_members_in_this_group=GroupMember.objects.filter(group=group)
         if(user_joined_groups.exists()):
             encrypted_msg_data = request.POST.get('encrypted_msg')
             file = request.FILES.get('file')
@@ -823,6 +824,8 @@ def send_group_message(request,group_id):
                     attachment.save()
                     new_grp_message.attachment=attachment
                     new_grp_message.is_attachment_present=True
+                for member in all_members_in_this_group:
+                    member.increase_unread_count()
                 new_grp_message.save()
             else:
                 new_group_message = GroupMessages.objects.create(
@@ -838,6 +841,8 @@ def send_group_message(request,group_id):
                 attachment.save()
                 new_group_message.is_attachment_present=True
                 new_group_message.attachment=attachment
+                for member in all_members_in_this_group:
+                    member.increase_unread_count()
                 new_group_message.save()
 
             return HttpResponse("done",status=200)
@@ -859,6 +864,7 @@ def send_group_message(request,group_id):
             aes_key_for_user = user_grp.aes_key_encrypted
             base64_aes_key = base64.b64encode(aes_key_for_user).decode()
             group_messages = GroupMessages.objects.filter(group=group)
+            user_joined_groups[0].make_unread_zero()
             
             for message in group_messages:
                 encrypted_msg_base64 = base64.b64encode(message.encrypted_message_content).decode('utf-8')
