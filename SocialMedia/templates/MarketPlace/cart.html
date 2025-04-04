@@ -25,6 +25,11 @@
                             <p>💰 Price: ₹{{ item.product.price }}</p>
                             <p>📦 Quantity: {{ item.quantity }}</p>
                             <p>🔢 Subtotal: ₹{{ item.subtotal|floatformat:2 }}</p>
+
+                            <form action="{% url 'MarketPlace:delete_from_cart' item.id %}" method="POST">
+                                {% csrf_token %}
+                                <button type="submit" class="delete-btn">🗑 Remove</button>
+                            </form>
                         </div>
                     </div>
                 {% endfor %}

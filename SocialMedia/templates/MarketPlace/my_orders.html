@@ -21,7 +21,7 @@
                     <div class="order-item">
                         <h3>🆔 Order ID: {{ order.id }}</h3>
                         <p>📅 Date: {{ order.created_at|date:"F d, Y H:i" }}</p>
-                        <p>💰 Total Price: ₹{{ order.total_price|floatformat:2 }}</p>
+                        <p class="total-price">💰 Total Price: ₹{{ order.total_price|floatformat:2 }}</p>
                         <h4>🛍️ Items:</h4>
                         <ul>
                             {% for item in order.order_items.all %}
@@ -41,7 +41,7 @@
         <a href="{% url 'MarketPlace:listings' %}" class="back-btn">⬅ Back to Listings</a>
     </main>
 
-    <footer>
+    <footer class="footer">
         <p>Team: 404s</p>
     </footer>
 </body>

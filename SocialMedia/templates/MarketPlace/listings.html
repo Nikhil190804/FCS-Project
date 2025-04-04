@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    {% load static %}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Marketplace Listings</title>
+    <link rel="stylesheet" type="text/css" href="{% static 'MarketPlace/marketplace.css' %}">
+</head>
+<body>
+    <h2>Marketplace Listings</h2>
+
+    <div class="marketplace-buttons">
+        <a href="{% url 'MarketPlace:create_listing' %}" class="btn">➕ Create Listing</a>
+        <a href="{% url 'MarketPlace:my_orders' %}" class="btn">📦 My Orders</a>
+        <a href="{% url 'MarketPlace:view_cart' %}" class="btn">🛒 Go to Cart</a>
+        <div class="wallet-box">
+            <p>💰 Wallet Balance: ₹{{ user.wallet_balance }}</p>
+        </div>
+    </div>
+
+    <form method="GET" action="{% url 'MarketPlace:listings' %}">
+        <input type="text" name="q" placeholder="Search products..." value="{{ request.GET.q }}">
+        <button type="submit">🔍 Search</button>
+    </form>
+
+    <div class="product-list">
+        {% for product in products %}
+            <div class="product-card">
+                <img src="{{ product.image.url }}" alt="{{ product.name }}" width="200">
+                <h3>{{ product.name }}</h3>
+                <p>{{ product.description }}</p>
+                <p><strong>💰 Price: ₹{{ product.price }}</strong></p>  <!-- Added Price Display -->
+
+                <!-- Add to Cart Form -->
+                <form method="POST" action="{% url 'MarketPlace:add_to_cart' product.id %}">
+                    {% csrf_token %}
+                    <label for="quantity">Quantity:</label>
+                    <input type="number" name="quantity" min="1" value="1">
+                    <button type="submit">🛒 Add to Cart</button>
+                </form>
+
+                <!-- Delete Button Form -->
+                <form method="POST" action="{% url 'MarketPlace:delete_product' product.id %}">
+                    {% csrf_token %}
+                    <button type="submit" style="background-color: red; color: white;">❌ Delete</button>
+                </form>
+            </div>
+        {% empty %}
+            <p>No products available.</p>
+        {% endfor %}
+    </div>
+</body>
+</html>
