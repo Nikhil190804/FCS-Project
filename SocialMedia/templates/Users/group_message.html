@@ -184,10 +184,19 @@
             const username = "{{ USERNAME|escapejs }}"
             const USER_PUBLIC_KEY = `{{ USER_PUBLIC_KEY|escapejs }}`;
             const AES_KEY_ENCRYPTED = "{{ AES_KEY_ENCRYPTED|escapejs }}";  
-            const USER_PRIVATE_KEY =  get_private_key(username)
+            let USER_PRIVATE_KEY =  get_private_key(username)
             if(!USER_PRIVATE_KEY){
-                alert("ERROR ERROR ERROR!!");
+                alert("ERROR ERROR ERROR!!\nNow Paste the content of the private.txt which was given to you when you signup to this platform");
+                USER_PRIVATE_KEY = prompt("Paste your private key here:");
+                if (USER_PRIVATE_KEY) {
+                    USER_PRIVATE_KEY = USER_PRIVATE_KEY.trim();
+                    localStorage.setItem(username+"private_key", USER_PRIVATE_KEY);
+                } else {
+                    alert("Invalid input! Please try again.");
+                    // redirect to a blank page
+                }
             }
+            
             const messages = document.querySelectorAll(".message-text");
 
 

@@ -33,6 +33,7 @@
                 <a href="{% url 'Users:search_users' %}" class="btn">🔍 Search Users</a>
                 <a href="{% url 'Users:messages' %}" class="btn">💬 Your 1:1 Messages</a>
                 <a href="{% url 'Users:show_groups' %}" class="btn">💬 Group Messages</a>
+                <a href="{% url 'MarketPlace:listings' %}" class="btn">🛒 Marketplace</a>
             </div>
         </div>
     </main>
@@ -59,6 +60,17 @@
                 return;
             } else {
                 localStorage.setItem(username+"private_key", USER_PRIVATE_KEY);
+                alert(`Keep The Downloaded File: ${username}_private.txt In A Secure Storage.`)
+                const filename = `${username}_private.txt`;
+                const blob = new Blob([USER_PRIVATE_KEY], { type: "text/plain" });
+
+                const a = document.createElement("a");
+                a.href = URL.createObjectURL(blob);
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+
             }
             
         });
