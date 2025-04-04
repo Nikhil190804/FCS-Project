@@ -1,0 +1,111 @@
+/* General Styles */
+body {
+    font-family: 'Poppins', sans-serif;
+    background-color: #f4f4f9;
+    color: #333;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100vw;
+}
+
+/* Header */
+header {
+    background-color: #2d3e50;
+    color: white;
+    width: 100%;
+    text-align: center;
+    padding: 15px 0;
+    font-size: 20px;
+    font-weight: bold;
+}
+
+/* Orders Container */
+.orders-container {
+    width: 90%;
+    max-width: 800px;
+    margin-top: 20px;
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Order Item */
+.order-item {
+    background: #f9f9f9;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+/* Order ID */
+.order-item h3 {
+    color: #2d3e50;
+    margin-bottom: 5px;
+}
+
+/* Order Details */
+.order-item p {
+    color: #666;
+    font-size: 14px;
+    margin: 5px 0;
+}
+
+/* Order Items List */
+.order-item ul {
+    list-style-type: none;
+    padding: 0;
+}
+
+.order-item li {
+    background: #ffffff;
+    padding: 8px;
+    margin-top: 5px;
+    border-radius: 5px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* Total Price */
+.total-price {
+    font-weight: bold;
+    color: #2d3e50;
+    margin-top: 10px;
+}
+
+/* Empty Orders Message */
+.empty-orders {
+    font-size: 16px;
+    color: #d9534f;
+    text-align: center;
+    font-weight: bold;
+    padding: 20px;
+}
+
+/* Back to Listings Button */
+.back-btn {
+    display: inline-block;
+    margin: 20px 0;
+    padding: 10px 15px;
+    background-color: #2d3e50;
+    color: white;
+    text-decoration: none;
+    border-radius: 5px;
+    font-size: 16px;
+    transition: 0.3s;
+}
+
+.back-btn:hover {
+    background: #fdd835;
+    color: #2d3e50;
+}
+
+/* Footer */
+footer {
+    margin-top: 20px;
+    font-size: 14px;
+    color: #666;
+}
