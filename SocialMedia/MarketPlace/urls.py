@@ -1,5 +1,6 @@
 from django.urls import path
 from . import views
+from .views import delete_from_cart
 
 app_name = 'MarketPlace'
 
@@ -16,7 +17,7 @@ urlpatterns += [
     path('listings/<int:product_id>/delete/', views.delete_product, name='delete_product'), 
     path('order/', views.order, name='order'),
     path('order-confirmation/', views.order_confirmation, name='order_confirmation'),
-    
+    path('cart/delete/<int:item_id>/', delete_from_cart, name='delete_from_cart'),
 
 
 ]

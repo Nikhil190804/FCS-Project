@@ -13,20 +13,48 @@ from django.shortcuts import get_object_or_404
 from .models import CartItem, Product, Order, OrderItem
 from django.views import generic
 from Users.models import User
+from django.db import transaction
+from django.http import HttpResponseRedirect
+from django.urls import reverse
+
+def delete_from_cart(request, item_id):
+    """Delete a specific item from the cart."""
+    cart_item = get_object_or_404(CartItem, id=item_id)
+
+    # Check if the logged-in user owns the cart item
+    if request.session.get("current_user") != cart_item.user_id:
+        return redirect("MarketPlace:view_cart")  # Redirect if unauthorized
+
+    cart_item.delete()
+    return HttpResponseRedirect(reverse("MarketPlace:view_cart"))
 
 def listings(request):
+    user = get_current_user(request)  # Fetch the logged-in user
+    if not user:
+        return redirect("Users:login")  # Redirect if not authenticated
+
     products = Product.objects.all()
-    return render(request, 'MarketPlace/listings.html', {'products': products})
+    
+    return render(request, 'MarketPlace/listings.html', {
+        'products': products,
+        'user': user  # Pass user to the template
+    })
 
 def create_listing(request):
+    user = get_current_user(request)  # Fetch the current user
+    if not user:
+        return redirect("Users:login")  # Redirect to login if not authenticated
+
     if request.method == "POST":
         form = ProductForm(request.POST, request.FILES)
         if form.is_valid():
-            form.save()
+            product = form.save(commit=False)
+            product.seller = user  # Assign the logged-in user as the seller
+            product.save()
             return redirect('MarketPlace:listings')
     else:
         form = ProductForm()
-    
+
     return render(request, 'MarketPlace/create_listing.html', {'form': form})
 
 def purchase(request, id):
@@ -82,19 +110,40 @@ def order(request):
         return redirect("Users:login")
 
     cart_items = CartItem.objects.filter(user=user)
-    if cart_items.exists():
-        total_price = sum(item.product.price * item.quantity for item in cart_items)
+    if not cart_items.exists():
+        return redirect("MarketPlace:view_cart")
+
+    total_price = sum(item.product.price * item.quantity for item in cart_items)
+
+    # Check if the user has enough balance
+    if user.wallet_balance < total_price:
+        return render(request, 'MarketPlace/cart.html', {
+            'cart_items': cart_items,
+            'total_price': total_price,
+            'error_message': "Insufficient balance in wallet!"
+        })
+
+    # Process Order within a transaction to ensure consistency
+    with transaction.atomic():
         order = Order.objects.create(user=user, total_price=total_price)
 
         for item in cart_items:
+            # Create order items
             OrderItem.objects.create(order=order, product=item.product, quantity=item.quantity, price_at_purchase=item.product.price)
 
-        cart_items.delete()  # Clear cart after order placement
+            # Deduct money from the buyer's wallet
+            user.wallet_balance -= item.product.price * item.quantity
 
-        return redirect("MarketPlace:order_confirmation")
+            # Credit money to the seller
+            seller = item.product.seller
+            seller.wallet_balance += item.product.price * item.quantity
+            seller.save()  # Save seller balance update
 
-    return redirect("MarketPlace:view_cart")
+        user.save()  # Save buyer balance update
 
+        cart_items.delete()  # Clear cart after purchase
+
+    return redirect("MarketPlace:order_confirmation")
 def my_orders(request):
     user = get_current_user(request)
     if not user:

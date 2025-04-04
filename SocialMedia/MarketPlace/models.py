@@ -6,14 +6,12 @@ class Product(models.Model):
     description = models.TextField()
     price = models.DecimalField(max_digits=10, decimal_places=2) 
     image = models.ImageField(upload_to='product_images/')
-
+    seller = models.ForeignKey(User, on_delete=models.CASCADE, related_name="products")
 
 class CartItem(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)  # Allow existing data
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
     quantity = models.PositiveIntegerField(default=1)
-
-    
 
 
 class Order(models.Model):
