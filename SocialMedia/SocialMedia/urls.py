@@ -21,6 +21,11 @@ from django.conf.urls.static import static
 from . import views
 
 
+from django.conf.urls import handler404
+from .views import error_404_page_not_found
+
+handler404 = error_404_page_not_found
+
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('users/',include(("Users.urls","Users"))),

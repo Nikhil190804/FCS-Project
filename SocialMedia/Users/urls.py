@@ -38,6 +38,7 @@ urlpatterns = [
     path('block_user/<int:user_id>/',views.block_user, name='block_user'),
     path('view_blocked_users/',views.view_blocked_users,name="view_blocked_users"),
     path('unblock_user/<int:user_id>/',views.unblock_user,name="unblock_user"),
+    path('report_user/<int:user_id>/',views.report_user, name='report_user'),
     path('show_groups/',views.show_groups,name="show_groups"),
     path('create_group/',views.create_group,name="create_group"),
     path('send_group_message/<int:group_id>/',views.send_group_message,name="send_group_message"),

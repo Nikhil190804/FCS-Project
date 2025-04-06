@@ -24,6 +24,8 @@ from django.shortcuts import  get_object_or_404
 from django.contrib.admin.views.decorators import staff_member_required
 import os
 import django.conf as dj_conf
+from Mods.models import ReportUser
+
 
 def profile(request):
     return render(request, 'Users/profile.html')
@@ -85,13 +87,11 @@ def encrypt_aes_key(aes_key,public_key):
 
 
 def validate_user(username,password):
-    try:
         user = User.objects.get(username=username)  
         if check_password(password, user.password_hash):  
             return True,user
-        return False ,None
-    except ObjectDoesNotExist:  
-        return False,None
+        else:
+            return False ,None  
 
 
 def validate_email(email):
@@ -206,11 +206,20 @@ def handle_login_request(request):
                 return redirect("Users:home")
             else:
                 print("wrong password")
-                return HttpResponse("wrong password")
+                CONTEXT = {
+                    "heading":"Error",
+                    "message":"Wrong Password!",
+                    "button_url":"Users:login"
+                }
+                return render(request,"SocialMedia/error.html",CONTEXT)
 
         except User.DoesNotExist:
-            print("user not found")
-            return HttpResponse("not found")
+            CONTEXT = {
+                    "heading":"Error",
+                    "message":"User With Given Username Does Not Exist!",
+                    "button_url":"Users:login"
+            }
+            return render(request,"SocialMedia/error.html",CONTEXT)
 
     else:
         return render(request,"Users/login.html")
@@ -708,6 +717,44 @@ def unblock_user(request,user_id):
     mem.success(request, f"You have successfully unblocked {target_user.username}.")
     
     return redirect("Users:view_blocked_users")
+
+
+
+def report_user(request,user_id):
+    current_user_id = request.session.get("current_user")
+
+    current_user = get_object_or_404(User,pk=current_user_id)
+    target_user = get_object_or_404(User, pk=user_id)
+    report_text = request.POST.get("report_text")
+    block_user = request.POST.get("block_user")
+
+    friendship = Friendship.objects.filter(
+        Q(from_user=current_user, to_user=target_user) |
+        Q(from_user=target_user, to_user=current_user)
+    ).first()
+
+
+    if(friendship):
+        report_request = ReportUser.objects.create(
+            user_reported=target_user,
+            reported_by=current_user,
+            complaint=report_text,
+        )
+
+        if(block_user):
+            friendship.block_user(current_user)
+            mem.success(request, f"{target_user.username} Reported & Blocked!")
+            return redirect("Users:home")
+        
+        report_request.save()
+        mem.success(request, f"{target_user.username} Reported!")
+        return redirect("Users:home")
+
+
+
+    else:
+        mem.error(request, "Friendship not found.")
+        return redirect("Users:home")
 
 
 

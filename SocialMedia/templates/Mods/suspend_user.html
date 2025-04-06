@@ -1,0 +1,10 @@
+{% extends "admin/base_site.html" %}
+{% block content %}
+<h2>Suspend User: {{ user.username }}</h2>
+<form method="POST">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit" style="background: orange; color: white; padding: 5px 10px; border-radius: 5px;">Suspend User</button>
+    <a href="{% url 'admin:Mods_reportuser_changelist' %}" style="margin-left: 10px;">Cancel</a>
+</form>
+{% endblock %}

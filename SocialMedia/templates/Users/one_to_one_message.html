@@ -57,7 +57,20 @@
     <div class="more-options">
         <h2>More Options</h2>
         <a href="{% url 'Users:block_user' friend.user_id %}">Block User</a>
-        <a href="{% url 'Users:home' %}">Report User</a>
+        <a  id="reportUserBtn">Report User</a>
+        <div id="reportSection" style="display: none; margin-top: 10px;">
+            <form method="POST" action="{% url 'Users:report_user' friend.user_id %}">
+                {% csrf_token %}
+                <label for="reportText">Reason for Report:</label>
+                <textarea id="reportText" style="height: 4rem;" name="report_text" required></textarea>
+    
+                <label style="display: block; margin-top: 5px;">
+                    <input type="checkbox" name="block_user"> Also block this user
+                </label>
+    
+                <button type="submit" style="margin-top: 10px;">Submit Report</button>
+            </form>
+        </div>
         <a class="close-btn" id="closeOptions">Close</a>
     </div>
 
@@ -241,9 +254,15 @@
                 const moreOptions = document.querySelector(".more-options");
                 moreOptions.classList.toggle("show");
             });
+
+            document.getElementById("reportUserBtn").addEventListener("click", function(event) {
+                event.preventDefault();
+                document.getElementById("reportSection").style.display = "block";
+            });
             
             document.getElementById("closeOptions").addEventListener("click", function() {
                 document.querySelector(".more-options").classList.remove("show");
+                document.getElementById("reportSection").style.display = "none";
             });
 
             const private_key = await pem_format_to_crypto_format(USER_PRIVATE_KEY,1)
