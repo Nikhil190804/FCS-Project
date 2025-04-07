@@ -33,7 +33,11 @@ def listings(request):
     if not user:
         return redirect("Users:login")  # Redirect if not authenticated
 
-    products = Product.objects.all()
+    query = request.GET.get('q', '')
+    if query:
+        products = Product.objects.filter(name__istartswith=query)  # Only products that START with query
+    else:
+        products = Product.objects.all()
     
     return render(request, 'MarketPlace/listings.html', {
         'products': products,
@@ -66,13 +70,15 @@ def my_orders(request):
 def add_to_cart(request, product_id):
     user = get_current_user(request)
     if not user:
-        return redirect("Users:login")  # Redirect to login if not authenticated
+        return redirect("Users:login") 
 
     product = get_object_or_404(Product, id=product_id)
     quantity = int(request.POST.get("quantity", 1))
 
     cart_item, created = CartItem.objects.get_or_create(user=user, product=product)
-    if not created:
+    if created:
+        cart_item.quantity = quantity  
+    else:
         cart_item.quantity += quantity
     cart_item.save()
 
@@ -129,19 +135,21 @@ def order(request):
 
         for item in cart_items:
             # Create order items
+
+            product = item.product
+            seller = product.seller
             OrderItem.objects.create(order=order, product=item.product, quantity=item.quantity, price_at_purchase=item.product.price)
 
             # Deduct money from the buyer's wallet
-            user.wallet_balance -= item.product.price * item.quantity
+            if seller != user:
+                amount = product.price * item.quantity
+                user.wallet_balance -= amount
+                seller.wallet_balance += amount
+                seller.save() 
 
-            # Credit money to the seller
-            seller = item.product.seller
-            seller.wallet_balance += item.product.price * item.quantity
-            seller.save()  # Save seller balance update
+        user.save()  
 
-        user.save()  # Save buyer balance update
-
-        cart_items.delete()  # Clear cart after purchase
+        cart_items.delete()
 
     return redirect("MarketPlace:order_confirmation")
 def my_orders(request):
@@ -160,7 +168,7 @@ def get_current_user(request):
     """Retrieve the currently logged-in user from the session."""
     current_user_id = request.session.get("current_user")
     if not current_user_id:
-        return None  # No user in session
+        return None 
     return User.objects.filter(user_id=current_user_id).first()
 #for payments
 
