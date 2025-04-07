@@ -19,9 +19,11 @@ from django.urls import path
 from django.contrib import admin
 from Users.views import verify_users, change_verification_status 
 import Users.views as views 
+
 urlpatterns = [
     path('signup/',views.handle_signup_request,name="signup"),
     path('login/',views.handle_login_request,name="login"),
+    path('logout/',views.handle_logout_request,name="logout"),
     path('otp/',views.otp,name="otp"),
     path('create_profile/',views.create_profile,name="create_profile"),
     path('home/',views.home,name="home"),
@@ -52,6 +54,5 @@ urlpatterns = [
     path("admin/verify_users/", verify_users, name="verify_users"),
     path("admin/verify/<int:user_id>/<str:status>/", change_verification_status, name="change_verification_status"),
     path('admin/', admin.site.urls),
-    path('profile/', views.profile, name="profile"),
 
 ]

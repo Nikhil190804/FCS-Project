@@ -24,11 +24,8 @@ from django.shortcuts import  get_object_or_404
 from django.contrib.admin.views.decorators import staff_member_required
 import os
 import django.conf as dj_conf
-from Mods.models import ReportUser
-
-
-def profile(request):
-    return render(request, 'Users/profile.html')
+from Mods.models import ReportUser,Ban,Suspension
+from django.contrib.auth import logout
 
 
 
@@ -60,8 +57,26 @@ def change_verification_status(request, user_id, status):
 
 
 
+def check_for_ban_suspension(user_id):
+    if Ban.objects.filter(user__user_id=user_id).exists():
+        return True, "You are permanently banned!"
+    
+    suspension = Suspension.objects.filter(user__user_id=user_id).first()
+    if suspension and not suspension.is_expired():
+        return True, "You are suspended for some time!"
+
+    return False, "You have full access." 
 
 
+
+def check_for_friends(user_id, friend_id):
+    friendship = Friendship.objects.filter(
+        Q(from_user_id=user_id, to_user_id=friend_id) | 
+        Q(from_user_id=friend_id, to_user_id=user_id),   
+        status='accepted'  
+    ).exists()
+
+    return friendship
 
 
 
@@ -189,7 +204,6 @@ def handle_signup_request(request):
         return render(request,"Users/sign-up.html")
     
 
-
 def handle_login_request(request):
     if "current_user" in request.session:  
         return redirect("Users:home")
@@ -201,11 +215,17 @@ def handle_login_request(request):
         try:
             is_present,user = validate_user(username,password)
             if(is_present == True):
-                print("bdia bhai")
-                request.session["current_user"] = user.user_id
-                return redirect("Users:home")
+                is_ban_or_suspended,msg = check_for_ban_suspension(user.user_id)
+                if(is_ban_or_suspended==True):
+                    CONTEXT = {
+                        "message":msg,
+                        "button_url":"Home"
+                    }
+                    return render(request,"Socialmedia/error.html",CONTEXT)
+                else:
+                    request.session["current_user"] = user.user_id
+                    return redirect("Users:home")
             else:
-                print("wrong password")
                 CONTEXT = {
                     "heading":"Error",
                     "message":"Wrong Password!",
@@ -224,6 +244,12 @@ def handle_login_request(request):
     else:
         return render(request,"Users/login.html")
       
+
+def handle_logout_request(request):
+    logout(request)  
+    request.session.flush()  
+    return redirect("/")
+
 
 def create_profile(request):
     if(request.method == "POST"):
@@ -296,15 +322,52 @@ def search_users(request):
 
     
     if(request.method == "GET"):
+        final_results = []
         search_parameter = request.GET.get('query', None)
         if(search_parameter !=None):
-           search_results = User.objects.filter(
+            friendships = Friendship.objects.filter(
+                Q(from_user=current_user_id, status__in=['accepted', 'pending']) | 
+                Q(to_user=current_user_id, status__in=['accepted', 'pending'])
+            ).values('from_user', 'to_user')
+
+            friend_ids = set()
+            for friendship in friendships:
+                if friendship['from_user'] == current_user_id:
+                    friend_ids.add(friendship['to_user'])  
+                else:
+                    friend_ids.add(friendship['from_user'])
+
+            banned_user_ids = set(Ban.objects.values_list('user_id', flat=True))
+
+            
+            active_suspended_user_ids = set(
+                suspension.user_id
+                for suspension in Suspension.objects.all()
+                if not suspension.is_expired()
+            )
+
+            restricted_user_ids = banned_user_ids | active_suspended_user_ids
+           
+            search_results = User.objects.filter(
                 Q(username__icontains=search_parameter) | Q(bio__icontains=search_parameter) 
-            ).exclude(user_id=current_user_id)
+            ).exclude(user_id=current_user_id).exclude(user_id__in=restricted_user_ids)
+
+            
+
+           
+            for user in search_results:
+                if(user.user_id in friend_ids):
+                    user.is_friend=True
+                else:
+                    user.is_friend=False
+                final_results.append(user)
+
+                
         else:
+            final_results=None
             search_results=None
 
-        return render(request, 'Users/search_users.html', {'search_results': search_results})
+        return render(request, 'Users/search_users.html', {'search_results': final_results})
    
 
 def show_friend_requests(request):
@@ -437,7 +500,8 @@ def messages(request):
             friend=friendship.from_user
 
         isBlocked = check_for_blocked_user(current_user_id,friend.user_id)
-        if(isBlocked):
+        is_ban_or_suspend,msg = check_for_ban_suspension(friend.user_id)
+        if(isBlocked or is_ban_or_suspend):
             continue
         else:
             # case 1 they have never talked , hence no entry in one to one message
@@ -473,13 +537,15 @@ def start_conversation(request):
     for friend in friends:
         if(friend.user_a==user):
             isBlocked = check_for_blocked_user(user.user_id,friend.user_b.user_id)
-            if(isBlocked):
+            is_ban_or_suspend,msg = check_for_ban_suspension(friend.user_b.user_id)
+            if(isBlocked or is_ban_or_suspend):
                 continue
             else:
                 friends_data.append(friend.user_b)
         else:
             isBlocked = check_for_blocked_user(user.user_id,friend.user_a.user_id)
-            if(isBlocked):
+            is_ban_or_suspend,msg = check_for_ban_suspension(friend.user_a.user_id)
+            if(isBlocked or is_ban_or_suspend):
                 continue
             else:
                 friends_data.append(friend.user_a)
@@ -491,9 +557,21 @@ def start_conversation(request):
 def send_one_to_one_message(request,reciever_id):
     current_user_id = request.session.get("current_user")
     isBlocked_or_valid = check_for_blocked_user(current_user_id,reciever_id)
+    is_ban_or_suspend_1,msg_1 = check_for_ban_suspension(reciever_id)
+    is_ban_or_suspend_2,msg_2 = check_for_ban_suspension(current_user_id)
+
     if(isBlocked_or_valid):
         mem.error(request,"Wrong FriendID or Friend has been blocked!!")
         return redirect("Users:home")
+    
+    if(is_ban_or_suspend_1):
+        mem.error(request,"Friend has been banned or suspended!!")
+        return redirect("Users:home")
+    
+    if(is_ban_or_suspend_2):
+        mem.error(request,msg_2)
+        return redirect("Home")
+    
     if(request.method=="POST"):
         current_user_id = request.session.get("current_user")
         sender_id = current_user_id
@@ -636,6 +714,14 @@ def one_to_one_attachment(request, conversation_id, message_id, attachment_id):
         raise Http404("Conversation not found")
     if current_user_id not in [conversation.user_a.user_id, conversation.user_b.user_id]:
         return HttpResponseForbidden("You are not authorized to access this conversation.")
+    
+    is_ban_or_suspend_1,msg = check_for_ban_suspension(conversation.user_a.user_id)
+    is_ban_or_suspend_2,msg = check_for_ban_suspension(conversation.user_b.user_id)
+
+    if(is_ban_or_suspend_1 or is_ban_or_suspend_2):
+        return HttpResponseForbidden("You are not authorized to access this conversation, as the sender/reciever is banned or suspended!")
+
+
     
     attachment = OneToOneAttachment.objects.filter(
             id=attachment_id, message_id=message_id, conversation_id=conversation_id
@@ -802,6 +888,23 @@ def create_group(request):
 
         for member in selected_members:
             new_group_member = User.objects.get(pk=member)
+            isfriend = check_for_friends(current_user_id,new_group_member.user_id)
+            is_ban_or_suspend,msg = check_for_ban_suspension(new_group_member.user_id)
+            if(isfriend == False):
+                CONTEXT = {
+                        "message":"Added Group Members contains Users which are not your friend!",
+                        "button_url":"Home"
+                    }
+                return render(request,"Socialmedia/error.html",CONTEXT)
+            
+            if(is_ban_or_suspend):
+                CONTEXT = {
+                        "message":"Added Group Members contains Users which have been banned or suspended!",
+                        "button_url":"Home"
+                    }
+                return render(request,"Socialmedia/error.html",CONTEXT)
+
+            
             new_member_public_key = new_group_member.public_key
             aes_key_encrypted_for_group_member = encrypt_aes_key(AES_KEY,new_member_public_key)
             new_member = GroupMember.objects.create(
@@ -822,13 +925,15 @@ def create_group(request):
         for friend in friends:
             if(friend.user_a==user):
                 isBlocked = check_for_blocked_user(user.user_id,friend.user_b.user_id)
-                if(isBlocked):
+                is_ban_or_suspend,msg = check_for_ban_suspension(friend.user_b.user_id)
+                if(isBlocked or is_ban_or_suspend):
                     continue
                 else:
                     friends_data.append(friend.user_b)
             else:
                 isBlocked = check_for_blocked_user(user.user_id,friend.user_a.user_id)
-                if(isBlocked):
+                is_ban_or_suspend,msg = check_for_ban_suspension(friend.user_a.user_id)
+                if(isBlocked or is_ban_or_suspend):
                     continue
                 else:
                     friends_data.append(friend.user_a)
@@ -953,6 +1058,9 @@ def view_group(request,group_id):
         all_group_members = GroupMember.objects.filter(group_id=group_id)
         group_members=[]
         for member in all_group_members:
+            is_ban_or_suspend,msg = check_for_ban_suspension(member.user.user_id)
+            if(is_ban_or_suspend):
+                continue
             if(member.user==user):
                 member.to_show=False
             else:
@@ -974,21 +1082,34 @@ def view_group(request,group_id):
 
         return render(request,"Users/view_group.html",CONTEXT)
     else:
-        return HttpResponse("not allowed to show")
+        CONTEXT = {
+            "message":"You are Not A Part Of This Group!",
+            "button_url":"Users:home"
+        }
+        return render(request,"Socialmedia/error.html",CONTEXT)
 
     
 def group_attachment(request, group_id, message_id, attachment_id):
     current_user_id = request.session.get("current_user")
     group_member = GroupMember.objects.filter(group=group_id,user=current_user_id).first()
     if not group_member:
-        return HttpResponseForbidden("You are not authorized to access this conversation.")
+        CONTEXT = {
+            "message":"You are not authorized to access this conversation !",
+            "button_url":"Users:home"
+        }
+        return render(request,"Socialmedia/error.html",CONTEXT)
+   
     
     attachment = GroupAttachment.objects.filter(
             id=attachment_id, message_id=message_id, group=group_id
         ).first()
     
     if not attachment:
-        raise Http404("Attachment not found")
+        CONTEXT = {
+            "message":"Attachment Doesn't Exist !",
+            "button_url":"Users:home"
+        }
+        return render(request,"Socialmedia/error.html",CONTEXT)
     
     return FileResponse(attachment.file, as_attachment=False)
 
