@@ -20,12 +20,18 @@
             {% for user in search_results %}
             <div class="user-card">
                 <img src="{{ user.profile_picture.url }}" alt="Profile Picture">
-                <p>{{ user.username }}</p>
-                <form method="POST" action="{% url 'Users:search_users' %}">
-                    {% csrf_token %}
-                    <input type="hidden" name="to_user_id" value="{{ user.user_id }}">
-                    <button type="submit">Send Friend Request</button>
-                </form>
+                <p><strong>{{ user.username }}</strong></p>
+                <p>{{ user.bio }}</p>  
+            
+                {% if user.is_friend %}
+                    <p style="color: green; font-weight: bold;">Request already sent</p>
+                {% else %}
+                    <form method="POST" action="{% url 'Users:search_users' %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="to_user_id" value="{{ user.user_id }}">
+                        <button type="submit">Send Friend Request</button>
+                    </form>
+                {% endif %}
             </div>
             {% endfor %}
         </div>
@@ -38,6 +44,9 @@
             {% endfor %}
         </div>
         {% endif %}
+        <div style="text-align: center; margin-top: 20px;">
+            <a href="{% url 'Users:home' %}" class="button">Home</a>
+        </div>
     </div>
 
 
