@@ -1,4 +1,4 @@
-/* General Styles */
+
 body {
     font-family: 'Poppins', sans-serif;
     background-color: #f4f4f9;
@@ -11,14 +11,14 @@ body {
     width: 100vw;
 }
 
-/* Page Title */
+
 h2 {
     color: #2d3e50;
     margin-top: 20px;
     text-align: center;
 }
 
-/* Marketplace Buttons */
+
 .marketplace-buttons {
     margin: 20px 0;
     display: flex;
@@ -40,7 +40,7 @@ h2 {
     color: #2d3e50;
 }
 
-/* Product List */
+
 .product-list {
     display: flex;
     flex-wrap: wrap;
@@ -50,7 +50,7 @@ h2 {
     width: 90%;
 }
 
-/* Product Card */
+
 .product-card {
     background: white;
     padding: 15px;
@@ -65,28 +65,28 @@ h2 {
     transform: scale(1.05);
 }
 
-/* Product Image */
+
 .product-card img {
     width: 100%;
     height: auto;
     border-radius: 10px;
 }
 
-/* Product Title */
+
 .product-card h3 {
     color: #2d3e50;
     font-size: 18px;
     margin: 10px 0;
 }
 
-/* Product Description */
+
 .product-card p {
     font-size: 14px;
     color: #666;
     margin-bottom: 10px;
 }
 
-/* Add to Cart Form */
+
 .product-card form {
     margin-top: 10px;
 }
@@ -98,7 +98,7 @@ h2 {
     border: 1px solid #ccc;
 }
 
-/* Buttons */
+
 .product-card button {
     background: #2d3e50;
     color: white;
@@ -116,7 +116,7 @@ h2 {
     color: #2d3e50;
 }
 
-/* Delete Button */
+
 .product-card button[style*="background-color: red"] {
     background: #d9534f;
 }
@@ -125,10 +125,56 @@ h2 {
     background: #c9302c;
 }
 
-/* Responsive Design */
+
 @media (max-width: 768px) {
     .product-list {
         flex-direction: column;
         align-items: center;
     }
+}
+
+.wallet-box {
+    position: absolute;
+    top: 20px;
+    right: 30px;
+    background-color: #fff3cd;
+    padding: 10px 15px;
+    border-left: 5px solid #ffc107;
+    border-radius: 8px;
+    font-weight: bold;
+    color: #333;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+    z-index: 1000;
+}
+
+.search-form {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.search-form input[type="text"] {
+    padding: 8px 12px;
+    width: 250px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    font-size: 14px;
+}
+
+.search-btn {
+    background-color: #2d3e50;
+    color: white;
+    border: none;
+    padding: 8px 14px;
+    border-radius: 5px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.search-btn:hover {
+    background-color: #fdd835;
+    color: #2d3e50;
 }
