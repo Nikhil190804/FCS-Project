@@ -35,6 +35,13 @@ def listings(request):
 
     query = request.GET.get('q', '')
     if query:
+        if len(query) > 100:
+            CONTEXT = {
+                        "heading":"Error",
+                        "message":"Search Query Length Too Big !",
+                        "button_url":"MarketPlace:listings"
+                    }
+            return render(request,"Socialmedia/error.html",CONTEXT)
         products = Product.objects.filter(name__istartswith=query)  # Only products that START with query
     else:
         products = Product.objects.all()
@@ -56,16 +63,20 @@ def create_listing(request):
             product.seller = user  # Assign the logged-in user as the seller
             product.save()
             return redirect('MarketPlace:listings')
+        else:
+            CONTEXT = {
+                        "heading":"Error",
+                        "message":"Wrong Fields In Listing Creation!",
+                        "button_url":"MarketPlace:listings"
+                    }
+            return render(request,"Socialmedia/error.html",CONTEXT)
+
     else:
         form = ProductForm()
 
     return render(request, 'MarketPlace/create_listing.html', {'form': form})
 
-def purchase(request, id):
-    return render(request, 'MarketPlace/purchase.html', {'id': id})
 
-def my_orders(request):
-    return render(request, 'MarketPlace/my_orders.html')
 
 def add_to_cart(request, product_id):
     user = get_current_user(request)
@@ -73,16 +84,28 @@ def add_to_cart(request, product_id):
         return redirect("Users:login") 
 
     product = get_object_or_404(Product, id=product_id)
-    quantity = int(request.POST.get("quantity", 1))
+    
+    try:
+        quantity = int(request.POST.get("quantity", 1))
+        cart_item, created = CartItem.objects.get_or_create(user=user, product=product)
+        if created:
+            cart_item.quantity = quantity  
+        else:
+            cart_item.quantity += quantity
+        cart_item.save()
+        return redirect("MarketPlace:view_cart")
+    except Exception as e:
+        CONTEXT = {
+                        "heading":"Error",
+                        "message":"Invalid Qunatity In Cart!",
+                        "button_url":"MarketPlace:listings"
+                    }
+        return render(request,"Socialmedia/error.html",CONTEXT)
 
-    cart_item, created = CartItem.objects.get_or_create(user=user, product=product)
-    if created:
-        cart_item.quantity = quantity  
-    else:
-        cart_item.quantity += quantity
-    cart_item.save()
 
-    return redirect("MarketPlace:view_cart")
+    
+
+    
 
 def view_cart(request):
     current_user_id = request.session.get("current_user")
@@ -98,17 +121,7 @@ def view_cart(request):
         'total_price': total_price
     })
 
-def delete_product(request, product_id):
-    product = get_object_or_404(Product, id=product_id)
 
-    if request.method == "POST":
-        # Delete all cart items related to this product
-        CartItem.objects.filter(product=product).delete()
-
-        # Delete the product itself
-        product.delete()
-
-    return redirect('MarketPlace:listings')
 
 def order(request):
     user = get_current_user(request)
@@ -123,35 +136,58 @@ def order(request):
 
     # Check if the user has enough balance
     if user.wallet_balance < total_price:
-        return render(request, 'MarketPlace/cart.html', {
-            'cart_items': cart_items,
-            'total_price': total_price,
-            'error_message': "Insufficient balance in wallet!"
-        })
+        CONTEXT = {
+                        "heading":"Error",
+                        "message":"Not Enough Balance!",
+                        "button_url":"MarketPlace:listings"
+                    }
+        return render(request,"Socialmedia/error.html",CONTEXT)
 
     # Process Order within a transaction to ensure consistency
-    with transaction.atomic():
-        order = Order.objects.create(user=user, total_price=total_price)
+    try:
+        with transaction.atomic():
+            order = Order.objects.create(user=user, total_price=total_price)
 
-        for item in cart_items:
-            # Create order items
+            for item in cart_items:
+                # Create order items
 
-            product = item.product
-            seller = product.seller
-            OrderItem.objects.create(order=order, product=item.product, quantity=item.quantity, price_at_purchase=item.product.price)
+                product = item.product
+                seller = product.seller
+                OrderItem.objects.create(order=order, product=item.product, quantity=item.quantity, price_at_purchase=item.product.price)
 
-            # Deduct money from the buyer's wallet
-            if seller != user:
-                amount = product.price * item.quantity
-                user.wallet_balance -= amount
-                seller.wallet_balance += amount
-                seller.save() 
+                # Deduct money from the buyer's wallet
+                if(seller == user):
+                    raise ValueError("You Are Already The Seller Of This Product !!")
+                else:
+                    amount = product.price * item.quantity
+                    user.wallet_balance -= amount
+                    seller.wallet_balance += amount
+                    seller.save() 
+                    user.save()  
 
-        user.save()  
+            cart_items.delete()
+            return redirect("MarketPlace:order_confirmation")
 
-        cart_items.delete()
+    except ValueError as ve:
+        CONTEXT = {
+                        "heading":"Error",
+                        "message":"You are Already The Seller Of The Product !",
+                        "button_url":"MarketPlace:listings"
+                    }
+        return render(request,"Socialmedia/error.html",CONTEXT)
+    
+    except Exception as e:
+        CONTEXT = {
+                        "heading":"Error",
+                        "message":"Backend Error !",
+                        "button_url":"MarketPlace:listings"
+                    }
+        return render(request,"Socialmedia/error.html",CONTEXT)
 
-    return redirect("MarketPlace:order_confirmation")
+
+    
+
+
 def my_orders(request):
     user = get_current_user(request)
     if not user:
@@ -170,35 +206,3 @@ def get_current_user(request):
     if not current_user_id:
         return None 
     return User.objects.filter(user_id=current_user_id).first()
-#for payments
-
-# import stripe
-# from django.conf import settings
-# # This is your test secret API key.
-# stripe.api_key = settings.STRIPE_SECRET_KEY
-
-# class CreateCheckoutSessionView(generic.View):
-#     def post(self, request, *args, **kwargs):
-#         YOUR_DOMAIN = "http://127.0.0.1:8000"  # Change to your actual domain in production
-
-#         checkout_session = stripe.checkout.Session.create(
-#             payment_method_types=['card'],
-#             line_items=[
-#                 {
-#                     'price_data': {
-#                         'currency': 'inr',  # Set currency
-#                         'product_data': {
-#                             'name': 'Cart Purchase',  # General name for cart purchase
-#                         },
-#                         'unit_amount': int(request.POST.get('amount', 0)) * 100,  # Convert to paisa
-#                     },
-#                     'quantity': 1,
-#                 },
-#             ],
-#             mode='payment',
-#             success_url=YOUR_DOMAIN + '/order-confirmation/',  # Redirect to order confirmation
-#             cancel_url=YOUR_DOMAIN + '/cart/',  # Redirect back to cart if canceled
-#         )
-
-#         return redirect(checkout_session.url, code=303)
-

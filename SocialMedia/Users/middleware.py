@@ -5,6 +5,7 @@ from Mods.models import Ban,Suspension
 from Users.models import User
 from django.shortcuts import render
 
+from Users.logging_and_blockchain import log_request
 
 class SignupProcessMiddleware:
     # Restricts OTP & Create Profile pages to users in the signup process.
@@ -38,7 +39,7 @@ class LegitAccessMiddleware:
         "change_profile_picture","change_bio","view_blocked_users",
         "show_groups","group_attachment",
         "listings", "create_listing", "purchase", "my_orders",
-        "view_cart", "add_to_cart", "delete_product", 
+        "view_cart", "add_to_cart",  
         "order", "order_confirmation", "delete_from_cart",
     }
 
@@ -48,7 +49,7 @@ class LegitAccessMiddleware:
 
     MARKETPLACE_ROUTES = {
         "listings", "create_listing", "purchase", "my_orders",
-        "view_cart", "add_to_cart", "delete_product", 
+        "view_cart", "add_to_cart",
         "order", "order_confirmation", "delete_from_cart",
     }
     
@@ -102,3 +103,16 @@ class LegitAccessMiddleware:
 
     
         return self.get_response(request)
+
+
+
+
+
+class RequestLoggerMiddleware:
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        log_request(request)  
+        response = self.get_response(request)
+        return response

@@ -50,6 +50,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'Users.middleware.RequestLoggerMiddleware',
     'Users.middleware.LegitAccessMiddleware',
     'Users.middleware.SignupProcessMiddleware',
 ]
@@ -84,7 +85,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'socialmediadb',
         'USER': 'root',
-        'PASSWORD': 'root123',
+        'PASSWORD': 'password',
         'HOST': 'localhost',  
         'PORT': '3306',
     }
