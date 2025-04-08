@@ -32,23 +32,44 @@ class Blockchain:
 
     def add_message(self, sender, message, file_hash=None):
         message_hash = hashlib.sha256(message.encode()).hexdigest()
+
+        # Verify integrity with previous log
+        if file_hash:
+            if not os.path.exists("latest_log.json"):
+                return "Missing local log for verification", 400
+
+            with open("latest_log.json", "r") as f:
+                last_log = f.read()
+
+            computed_hash = hashlib.sha256(last_log.encode()).hexdigest()
+            if computed_hash != file_hash:
+                return "❌ Integrity check failed: previous log hash mismatch", 400
+
+    # Store new log
+        with open("latest_log.json", "w") as f:
+            f.write(message)
+
         entry = {'sender': sender, 'message_hash': message_hash}
         if file_hash:
             entry["file_hash"] = file_hash
+
         self.pending_messages.append(entry)
         return message_hash
+
 
     def get_last_block(self):
         return self.chain[-1]
 
     def proof_of_work(self, previous_proof):
         new_proof = 1
-        while hashlib.sha256(str(new_proof**2 - previous_proof**2).encode()).hexdigest()[:4] != "0000":
+        while hashlib.sha256(str(new_proof*2 - previous_proof*2).encode()).hexdigest()[:4] != "0000":
             new_proof += 1
         return new_proof
 
     def hash(self, block):
-        encoded_block = json.dumps(block, sort_keys=True).encode()
+        block_copy = block.copy()
+        block_copy.pop('hash', None)  # Prevent 'hash' field from affecting the calculation
+        encoded_block = json.dumps(block_copy, sort_keys=True).encode()
         return hashlib.sha256(encoded_block).hexdigest()
 
     def save_chain(self):
@@ -56,8 +77,14 @@ class Blockchain:
             json.dump(self.chain, f, indent=4)
 
     def load_chain(self):
-        with open(BLOCKCHAIN_FILE, 'r') as f:
-            self.chain = json.load(f)
+        if os.path.getsize(BLOCKCHAIN_FILE) == 0:
+            # If file is empty, create genesis block
+            self.create_block(previous_hash="1", proof=100)
+            self.save_chain()
+        else:
+            with open(BLOCKCHAIN_FILE, 'r') as f:
+                self.chain = json.load(f)
+
 
     def is_chain_valid(self, chain):
         for i in range(1, len(chain)):
@@ -72,7 +99,7 @@ class Blockchain:
             # Check proof of work
             prev_proof = previous_block['proof']
             current_proof = current_block['proof']
-            hash_operation = hashlib.sha256(str(current_proof**2 - prev_proof**2).encode()).hexdigest()
+            hash_operation = hashlib.sha256(str(current_proof*2 - prev_proof*2).encode()).hexdigest()
             if hash_operation[:4] != '0000':
                 return False
 
@@ -107,10 +134,33 @@ def get_chain():
 @app.route('/verify_chain', methods=['GET'])
 def verify_chain():
     is_valid = blockchain.is_chain_valid(blockchain.chain)
-    if is_valid:
-        return jsonify({'message': '✅ Blockchain is valid.'}), 200
-    else:
+    if not is_valid:
         return jsonify({'message': '❌ Blockchain has been tampered with!'}), 400
 
-if __name__ == '__main__':
+    try:
+        # Compare last message with local log
+        last_block = blockchain.chain[-1]
+        last_messages = last_block.get("messages", [])
+        if not last_messages:
+            return jsonify({'message': '✅ Chain valid, no messages to verify'}), 200
+
+        last_msg_hash = last_messages[-1]["message_hash"]
+
+        if not os.path.exists("latest_log.json"):
+            return jsonify({'message': '⚠ No local log found for hash check'}), 200
+
+        with open("latest_log.json", "r") as f:
+            last_log = f.read()
+            computed_hash = hashlib.sha256(last_log.encode()).hexdigest()
+
+        if last_msg_hash != computed_hash:
+            return jsonify({'message': '❌ Latest log file has been altered!'}), 400
+
+        return jsonify({'message': '✅ Blockchain and local log integrity verified'}), 200
+
+    except Exception as e:
+        return jsonify({'message': f'⚠ Verification error: {str(e)}'}), 500
+
+
+if __name__ == '_main_':
     app.run(host='0.0.0.0', port=5000)
