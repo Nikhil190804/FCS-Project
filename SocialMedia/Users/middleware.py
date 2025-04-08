@@ -64,6 +64,15 @@ class LegitAccessMiddleware:
                 return redirect("Users:login")
             else:
                 current_user_id = request.session.get("current_user")
+                if not User.objects.filter(user_id=current_user_id).exists():
+                    request.session.flush()
+                    CONTEXT = {
+                        "heading":"Error",  
+                        "message":"User Not Found !",
+                        "button_url":"Home",
+                    }
+                    return render(request, "Socialmedia/error.html", CONTEXT,status=404)
+
 
                 if Ban.objects.filter(user__user_id=current_user_id).exists():
                     CONTEXT = {

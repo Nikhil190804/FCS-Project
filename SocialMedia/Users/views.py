@@ -26,6 +26,7 @@ import os
 import django.conf as dj_conf
 from Mods.models import ReportUser,Ban,Suspension
 from django.contrib.auth import logout
+from django.db import IntegrityError, DatabaseError, transaction
 
 
 
@@ -123,8 +124,14 @@ def otp(request):
     if(request.method == "POST"):
         user_data = request.session.get("pending_user")
         entered_otp = request.POST.get("otp")
-        print(user_data)
-        print(entered_otp)
+        if((not user_data) or (not entered_otp)):
+            CONTEXT = {
+                    "heading":"Session Expired",
+                    "message":"Your Session Has Expired!",
+                    "button_url":"Home"
+                }
+            return render(request,"SocialMedia/error.html",CONTEXT)
+
         otp = user_data["otp"]
         if entered_otp==otp:  
             return redirect("Users:create_profile")
@@ -138,7 +145,6 @@ def generate_otp(length):
     OTP=""
     for i in range(length):
         OTP+=str(secrets.randbelow(10))
-    print(OTP)
     return OTP
   
 
@@ -154,6 +160,8 @@ def check_for_blocked_user(current_user_id, friend_id):
         return False
     except Friendship.DoesNotExist:
         return False  
+    except Exception as e:
+        return False
 
 
 def send_otp_mail(OTP,email):
@@ -177,11 +185,63 @@ def handle_signup_request(request):
         email = request.POST.get("email")
         phone_number = request.POST.get("phone_number")
         password = request.POST.get("password")
+
+        if not all([username, email, phone_number, password]):
+            CONTEXT = {
+                    "heading":"Error",
+                    "message":"Valid Fields Not Found",
+                    "button_url":"Home"
+                }
+            return render(request,"SocialMedia/error.html",CONTEXT)
+        
+        try:
+            if len(username) > 30:
+                CONTEXT = {
+                    "heading":"Error",
+                    "message":"Username cannot be longer than 30 characters.",
+                    "button_url":"Home"
+                }
+                return render(request,"SocialMedia/error.html",CONTEXT)
+        
+            if len(password) > 30:
+                CONTEXT = {
+                    "heading":"Error",
+                    "message":"Password cannot be longer than 30 characters.",
+                    "button_url":"Home"
+                }
+                return render(request,"SocialMedia/error.html",CONTEXT)
+                
+
+            if not phone_number.isdigit():
+                CONTEXT = {
+                    "heading":"Error",
+                    "message":"Phone number must contain only digits.",
+                    "button_url":"Home"
+                }
+                return render(request,"SocialMedia/error.html",CONTEXT)
+
+            if len(phone_number) > 12: 
+                CONTEXT = {
+                    "heading":"Error",
+                    "message":"Phone number cannot be longer than 12 digits.",
+                    "button_url":"Home"
+                }
+                return render(request,"SocialMedia/error.html",CONTEXT)
+                
+        except Exception as e:
+            CONTEXT = {
+                    "heading":"Error",
+                    "message":"Wrong Fields In Request",
+                    "button_url":"Home"
+                }
+            return render(request,"SocialMedia/error.html",CONTEXT)
+
+        
         hashed_password = make_password(password)
 
         isEmailValid = validate_email(email)
         if(isEmailValid==True):
-            otp = generate_otp(5)
+            otp = generate_otp(6)
             user_data = {
                 "username": username,
                 "email": email,
@@ -194,8 +254,12 @@ def handle_signup_request(request):
             if(isOTPMailSent==True):
                 return redirect("Users:otp")
             else:
-                print(message)
-                return HttpResponse("L lg gye dost!")
+                CONTEXT = {
+                    "heading":"Error",
+                    "message":"Failure In Sending Mail",
+                    "button_url":"Home"
+                }
+                return render(request,"SocialMedia/error.html",CONTEXT)
             
         else:
             return render(request,"Users/sign-up.html",{"error": "Invalid email format!"})
@@ -218,6 +282,7 @@ def handle_login_request(request):
                 is_ban_or_suspended,msg = check_for_ban_suspension(user.user_id)
                 if(is_ban_or_suspended==True):
                     CONTEXT = {
+                        "heading":"Error",
                         "message":msg,
                         "button_url":"Home"
                     }
@@ -258,26 +323,56 @@ def create_profile(request):
         profile_picture = request.FILES.get('profile_picture')  
         verification_doc = request.FILES.get('verification_doc')
 
+        if not profile_picture:
+            request.session.flush()  
+            CONTEXT = {
+                    "heading":"Error",
+                    "message":"Profile Picture Is Mandatory!",
+                    "button_url":"Home"
+            }
+            return render(request,"SocialMedia/error.html",CONTEXT)
+
         username = user_data.get("username")
         email = user_data.get("email")
         phone_number = user_data.get("phone_number")
         hashed_password = user_data.get("hashed_password")
+
+        if not all([username, email, phone_number, hashed_password]):
+            request.session.flush()  
+            CONTEXT = {
+                    "heading":"Error",
+                    "message":"Session Expired!",
+                    "button_url":"Home"
+            }
+            return render(request,"SocialMedia/error.html",CONTEXT)
+
         public_key,private_key = generate_public_private_keys()
+        try:
+            with transaction.atomic():
+                user = User.objects.create(
+                    username=username,
+                    email=email,
+                    phone_number=phone_number,
+                    password_hash=hashed_password,
+                    profile_picture=profile_picture,
+                    bio=bio,
+                    public_key=public_key,
+                )
 
-        user = User.objects.create(
-            username=username,
-            email=email,
-            phone_number=phone_number,
-            password_hash=hashed_password,
-            profile_picture=profile_picture,
-            bio=bio,
-            public_key=public_key,
-        )
+                if verification_doc:
+                    user.verfication_document = verification_doc
 
-        if verification_doc:
-            user.verfication_document = verification_doc
+                user.save()
+        except Exception as e:
+            request.session.flush()  
+            CONTEXT = {
+                    "heading":"Error",
+                    "message":"Username, Email, Phone Number Should Be Unique !",
+                    "button_url":"Home"
+            }
+            return render(request,"SocialMedia/error.html",CONTEXT)
 
-        user.save()
+        
         request.session.pop("pending_user", None)
         request.session["current_user"] = user.user_id
         request.session["private_key"]=private_key
@@ -310,13 +405,42 @@ def search_users(request):
     current_user_id = request.session.get("current_user")
     if(request.method == "POST"):
         to_user_id = request.POST.get("to_user_id")
-        print(current_user_id)
-        print(to_user_id)
-        friend_request =  Friendship.objects.create( 
-            from_user = User.objects.get(user_id=current_user_id),
-            to_user = User.objects.get(user_id=to_user_id),
-        )
-        friend_request.save()
+
+        if not to_user_id:
+            CONTEXT = {
+                    "heading":"Error",
+                    "message":"Recipient is required!",
+                    "button_url":"Users:home"
+            }
+            return render(request,"SocialMedia/error.html",CONTEXT)
+        
+        try:
+            to_user = User.objects.get(user_id=to_user_id)
+            from_user = User.objects.get(user_id=current_user_id)
+        except User.DoesNotExist:
+            CONTEXT = {
+                    "heading":"Error",
+                    "message":"No Recipient Found With That Username !",
+                    "button_url":"Users:home"
+            }
+            return render(request,"SocialMedia/error.html",CONTEXT)
+        
+        existing_request = Friendship.objects.filter(
+            (Q(from_user=from_user, to_user=to_user) | Q(from_user=to_user, to_user=from_user))
+        ).exists()
+
+        if existing_request:
+            CONTEXT = {
+                    "heading":"Error",
+                    "message":"Friend request already exists!",
+                    "button_url":"Users:home"
+            }
+            return render(request,"SocialMedia/error.html",CONTEXT)
+    
+        with transaction.atomic():
+            friend_request = Friendship.objects.create(from_user=from_user, to_user=to_user)
+            friend_request.save()
+        
         mem.success(request, "Request Sent!")
         return redirect("Users:search_users")
 
@@ -374,27 +498,48 @@ def show_friend_requests(request):
     if(request.method == "POST"):
         friends_id = request.POST.get("request_id")
         action = request.POST.get("action")
-        friend_request = Friendship.objects.get(id=friends_id)
-        if(action=="accept"):
-            friend_request.status = "accepted"
-            AES_KEY = get_random_bytes(32)
-            public_key_user_a = friend_request.from_user.public_key
-            public_key_user_b = friend_request.to_user.public_key
-            aes_key_for_user_a = encrypt_aes_key(AES_KEY,public_key_user_a)
-            aes_key_for_user_b = encrypt_aes_key(AES_KEY,public_key_user_b)
-            conversation = OnetoOneConversation.objects.create(
-                friendship=friend_request,
-                user_a=friend_request.from_user,
-                user_b=friend_request.to_user,
-                encrypted_aes_key_for_user_a=aes_key_for_user_a,
-                encrypted_aes_key_for_user_b=aes_key_for_user_b,
-            )
-            conversation.save()
-            
-        else:
-            friend_request.status = "declined"
-        friend_request.save()
-        return HttpResponse("done !")
+
+        if ((not friends_id) or (not action)):
+            CONTEXT = {
+                    "heading":"Error",
+                    "message":"No Friend Selected or No Action Selected !",
+                    "button_url":"Users:home"
+            }
+            return render(request,"SocialMedia/error.html",CONTEXT)
+        try:
+            friend_request = Friendship.objects.get(id=friends_id)
+            if(action=="accept"):
+                friend_request.status = "accepted"
+                AES_KEY = get_random_bytes(32)
+                public_key_user_a = friend_request.from_user.public_key
+                public_key_user_b = friend_request.to_user.public_key
+                aes_key_for_user_a = encrypt_aes_key(AES_KEY,public_key_user_a)
+                aes_key_for_user_b = encrypt_aes_key(AES_KEY,public_key_user_b)
+                conversation = OnetoOneConversation.objects.create(
+                    friendship=friend_request,
+                    user_a=friend_request.from_user,
+                    user_b=friend_request.to_user,
+                    encrypted_aes_key_for_user_a=aes_key_for_user_a,
+                    encrypted_aes_key_for_user_b=aes_key_for_user_b,
+                )
+                conversation.save()
+                
+            else:
+                friend_request.status = "declined"
+            friend_request.save()
+            mem.success(request, "Friend Request Accepted !")
+           
+            return redirect("Users:home")
+        
+        except Exception as e:
+            CONTEXT = {
+                    "heading":"Error",
+                    "message":"No Valid Friend Request Found !",
+                    "button_url":"Users:home"
+            }
+            return render(request,"SocialMedia/error.html",CONTEXT)
+
+        
         
     else:
         current_user_id = request.session.get("current_user")
@@ -410,12 +555,36 @@ def settings(request):
 
 def change_password(request):
     if(request.method=="POST"):
-        print("ho gya ")
         current_user_id = request.session.get("current_user")
         user = User.objects.get(user_id=current_user_id)
         otp = request.session.get("otp")
         user_entered_password = request.POST.get("new_password")
         user_entered_otp = request.POST.get("otp")
+
+        if not otp or not user_entered_password or not user_entered_otp:
+            CONTEXT = {
+                        "heading":"Error",  
+                        "message":"OTP and new password are required!",
+                        "button_url":"Users:home",
+                    }
+            return render(request, "Socialmedia/error.html", CONTEXT,status=404)
+            
+        if not user_entered_otp.isdigit() or len(user_entered_otp) != 6:
+            CONTEXT = {
+                        "heading":"Error",  
+                        "message":"Invalid OTP format!",
+                        "button_url":"Users:home",
+                    }
+            return render(request, "Socialmedia/error.html", CONTEXT,status=404)
+        
+        if len(user_entered_password) > 30:
+            CONTEXT = {
+                        "heading":"Error",  
+                        "message":"Password cannot exceed 30 characters!",
+                        "button_url":"Users:home",
+                    }
+            return render(request, "Socialmedia/error.html", CONTEXT,status=404)
+         
 
         if(otp==user_entered_otp):
             hashed_password = make_password(user_entered_password)
@@ -433,14 +602,18 @@ def change_password(request):
 
         current_user_id = request.session.get("current_user")
         user = User.objects.get(user_id=current_user_id)
-        otp = generate_otp(5)
+        otp = generate_otp(6)
         isOTPMailSent,message = send_otp_mail(otp,user.email)
         if(isOTPMailSent==True):
             request.session["otp"] = otp
             return render(request,'Users/settings.html',{ "profile":False, "action":False, "otp":True})
         else:
-            print(message)
-            return HttpResponse("L lg gye dost!")
+            CONTEXT = {
+                    "heading":"Error",
+                    "message":"Failed To Send Mail !",
+                    "button_url":"Home"
+            }
+            return render(request,"SocialMedia/error.html",CONTEXT)
 
 
 
@@ -464,18 +637,27 @@ def change_profile_picture(request):
     if(request.method == "POST"):
         current_user_id = request.session.get("current_user")
         user = User.objects.get(user_id=current_user_id)
-        if ("profile_picture" in request.FILES):
-            if user.profile_picture:  
-                old_picture_path = os.path.join(dj_conf.settings.MEDIA_ROOT, str(user.profile_picture))
-                print(old_picture_path)
-                if os.path.exists(old_picture_path):
-                    os.remove(old_picture_path)
-            new_picture = request.FILES["profile_picture"]
-            user.profile_picture = new_picture 
-            user.save()
-            return render(request,"Users/change_profile.html",{"message":"Profile Updated Successfully!"})
-        else: 
-            return render(request,"Users/change_profile.html",{"message":"Photo Not Uploaded or Backend Error!"})
+        try:
+            if ("profile_picture" in request.FILES):
+                if user.profile_picture:  
+                    old_picture_path = os.path.join(dj_conf.settings.MEDIA_ROOT, str(user.profile_picture))
+                    print(old_picture_path)
+                    if os.path.exists(old_picture_path):
+                        os.remove(old_picture_path)
+                new_picture = request.FILES["profile_picture"]
+                user.profile_picture = new_picture 
+                user.save()
+                return render(request,"Users/change_profile.html",{"message":"Profile Updated Successfully!"})
+            else: 
+                return render(request,"Users/change_profile.html",{"message":"Photo Not Uploaded or Backend Error!"})
+        except Exception as e:
+            CONTEXT = {
+                        "heading":"Error",  
+                        "message":"Backend Error !",
+                        "button_url":"Users:home",
+                    }
+            return render(request, "Socialmedia/error.html", CONTEXT,status=404)
+        
      
     else:
         return render(request,"Users/change_profile.html",{"profile_picture":True})
@@ -556,6 +738,24 @@ def start_conversation(request):
 
 def send_one_to_one_message(request,reciever_id):
     current_user_id = request.session.get("current_user")
+
+    if not reciever_id:
+        CONTEXT = {
+                        "heading":"Error",  
+                        "message":"Receiver ID is required!",
+                        "button_url":"Users:home",
+                    }
+        return render(request, "Socialmedia/error.html", CONTEXT,status=404)
+       
+    if not User.objects.filter(user_id=reciever_id).exists():
+        CONTEXT = {
+                        "heading":"Error",  
+                        "message":"Receiver not found!",
+                        "button_url":"Users:home",
+                    }
+        return render(request, "Socialmedia/error.html", CONTEXT,status=404)
+        
+
     isBlocked_or_valid = check_for_blocked_user(current_user_id,reciever_id)
     is_ban_or_suspend_1,msg_1 = check_for_ban_suspension(reciever_id)
     is_ban_or_suspend_2,msg_2 = check_for_ban_suspension(current_user_id)
@@ -631,7 +831,12 @@ def send_one_to_one_message(request,reciever_id):
             return HttpResponse("done",status=200)
         
         else:
-            return HttpResponse("Not your friend!", status=403)
+            CONTEXT = {
+                        "heading":"Error",  
+                        "message":"Not your friend!",
+                        "button_url":"Users:home",
+                    }
+            return render(request, "Socialmedia/error.html", CONTEXT,status=403)
 
     else:
 
@@ -688,38 +893,53 @@ def send_one_to_one_message(request,reciever_id):
             return render(request,"Users/one_to_one_message.html",CONTEXT )
 
         else:
-            return HttpResponse("wrong ids!!")
+            CONTEXT = {
+                        "heading":"Error",  
+                        "message":"Wrong Chats !",
+                        "button_url":"Users:home",
+                    }
+            return render(request, "Socialmedia/error.html", CONTEXT,status=404)
 
-        user_a = User.objects.get(pk=sender_id)
-        user_b = User.objects.get(pk=reciever_id)
-
-        context = {
-        "friend": user_b,
-        "messages": [
-            {"sender": {"id": 1, "username": "You"}, "text": "Hey John!", "timestamp": "14:30", "read": True},
-            {"sender": {"id": 2, "username": "JohnDoe"}, "text": "Hey! How's irujhtyujtyjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjh ffffffffffff jnr teyntghrtytnj k4j5 k jhfy rujhtyujtyjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjh ffffffffffff jnr teyntghrtytnj k4j5 k jhfy t going?", "timestamp": "14:32", "read": True},
-            {"sender": {"id": 1, "username": "You"}, "text": "All good!tgrujhtyujtyjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjh ffffffffffff jnr teyntghrtytnj k4j5 k jhfyhjnghmnghjmnghjn rujhtyujtyjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjh ffffffffffff jnr teyntghrtytnj k4j5 k jhfy rujhtyujtyjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjh ffffffffffff jnr teyntghrtytnj k4j5 k jhfy rujhtyujtyjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjh ffffffffffff jnr teyntghrtytnj k4j5 k jhfy Working on Django.", "timestamp": "14:35", "read": False}
-        ],
-        "user": {"id": 1, "username": "You"}
-        }
-
-    return render(request,"Users/one_to_one_message.html",context )
-
-
+        
 
 def one_to_one_attachment(request, conversation_id, message_id, attachment_id):
     current_user_id = request.session.get("current_user")
+
+    if not (str(conversation_id).isdigit() and str(message_id).isdigit() and str(attachment_id).isdigit()):
+        CONTEXT = {
+                        "heading":"Error",  
+                        "message":"Invalid IDs! They must be numeric.",
+                        "button_url":"Users:home",
+                    }
+        return render(request, "Socialmedia/error.html", CONTEXT,status=404)
+
     conversation = OnetoOneConversation.objects.filter(id=conversation_id).first()
     if not conversation:
-        raise Http404("Conversation not found")
+        CONTEXT = {
+                        "heading":"Error",  
+                        "message":"Conversation not found",
+                        "button_url":"Users:home",
+                    }
+        return render(request, "Socialmedia/error.html", CONTEXT,status=404)
+    
     if current_user_id not in [conversation.user_a.user_id, conversation.user_b.user_id]:
-        return HttpResponseForbidden("You are not authorized to access this conversation.")
+        CONTEXT = {
+                        "heading":"Error",  
+                        "message":"You are not authorized to access this conversation.",
+                        "button_url":"Users:home",
+                    }
+        return render(request, "Socialmedia/error.html", CONTEXT,status=404)
     
     is_ban_or_suspend_1,msg = check_for_ban_suspension(conversation.user_a.user_id)
     is_ban_or_suspend_2,msg = check_for_ban_suspension(conversation.user_b.user_id)
 
     if(is_ban_or_suspend_1 or is_ban_or_suspend_2):
-        return HttpResponseForbidden("You are not authorized to access this conversation, as the sender/reciever is banned or suspended!")
+        CONTEXT = {
+                        "heading":"Error",  
+                        "message":"You are not authorized to access this conversation, as the sender/reciever is banned or suspended!",
+                        "button_url":"Users:home",
+                    }
+        return render(request, "Socialmedia/error.html", CONTEXT,status=404)
 
 
     
@@ -728,7 +948,12 @@ def one_to_one_attachment(request, conversation_id, message_id, attachment_id):
         ).first()
     
     if not attachment:
-        raise Http404("Attachment not found")
+        CONTEXT = {
+                        "heading":"Error",  
+                        "message":"Attachment not found",
+                        "button_url":"Users:home",
+                    }
+        return render(request, "Socialmedia/error.html", CONTEXT,status=404)
     
     return FileResponse(attachment.file, as_attachment=False)
     
@@ -811,8 +1036,17 @@ def report_user(request,user_id):
 
     current_user = get_object_or_404(User,pk=current_user_id)
     target_user = get_object_or_404(User, pk=user_id)
+
     report_text = request.POST.get("report_text")
     block_user = request.POST.get("block_user")
+
+    if not report_text:
+        CONTEXT = {
+                        "heading":"Error",  
+                        "message":"Report Can't Be Empty !",
+                        "button_url":"Users:home",
+                    }
+        return render(request, "Socialmedia/error.html", CONTEXT,status=404)
 
     friendship = Friendship.objects.filter(
         Q(from_user=current_user, to_user=target_user) |
@@ -835,8 +1069,6 @@ def report_user(request,user_id):
         report_request.save()
         mem.success(request, f"{target_user.username} Reported!")
         return redirect("Users:home")
-
-
 
     else:
         mem.error(request, "Friendship not found.")
@@ -864,57 +1096,93 @@ def create_group(request):
         description = request.POST.get("description", "")
         group_pic = request.FILES.get("group_pic")
         selected_members = request.POST.getlist("members")
+
+        if not group_name:
+            CONTEXT = {
+                        "heading":"Error",  
+                        "message":"Group name is required!",
+                        "button_url":"Users:home",
+                    }
+            return render(request, "Socialmedia/error.html", CONTEXT,status=400)
+
+        if not selected_members:
+            CONTEXT = {
+                        "heading":"Error",  
+                        "message":"At least one member must be selected!",
+                        "button_url":"Users:home",
+                    }
+            return render(request, "Socialmedia/error.html", CONTEXT,status=400)
+        
+        if not group_pic:
+            CONTEXT = {
+                        "heading":"Error",  
+                        "message":"Group picture is required!",
+                        "button_url":"Users:home",
+                    }
+            return render(request, "Socialmedia/error.html", CONTEXT,status=400)
+
         AES_KEY = get_random_bytes(32)
         public_key_admin = user.public_key
         aes_key_encrypted = encrypt_aes_key(AES_KEY,public_key_admin)
 
 
-        new_group = Group.objects.create(
-            name=group_name,
-            description=description,
-            group_profile_picture=group_pic,
-            admin=user,
-            aes_key_encrypted_by_admin=aes_key_encrypted,
-        )
-        new_group.save()
+        try:
+            with transaction.atomic():
+                new_group = Group.objects.create(
+                    name=group_name,
+                    description=description,
+                    group_profile_picture=group_pic,
+                    admin=user,
+                    aes_key_encrypted_by_admin=aes_key_encrypted,
+                )
+                new_group.save()
 
-        admin_as_a_member = GroupMember.objects.create(
-                group=new_group,
-                user=user,
-                aes_key_encrypted=aes_key_encrypted,
-            )
-        admin_as_a_member.save()
+                admin_as_a_member = GroupMember.objects.create(
+                        group=new_group,
+                        user=user,
+                        aes_key_encrypted=aes_key_encrypted,
+                    )
+                admin_as_a_member.save()
 
 
-        for member in selected_members:
-            new_group_member = User.objects.get(pk=member)
-            isfriend = check_for_friends(current_user_id,new_group_member.user_id)
-            is_ban_or_suspend,msg = check_for_ban_suspension(new_group_member.user_id)
-            if(isfriend == False):
-                CONTEXT = {
-                        "message":"Added Group Members contains Users which are not your friend!",
-                        "button_url":"Home"
-                    }
-                return render(request,"Socialmedia/error.html",CONTEXT)
-            
-            if(is_ban_or_suspend):
-                CONTEXT = {
-                        "message":"Added Group Members contains Users which have been banned or suspended!",
-                        "button_url":"Home"
-                    }
-                return render(request,"Socialmedia/error.html",CONTEXT)
+                for member in selected_members:
+                    new_group_member = User.objects.get(pk=member)
+                    isfriend = check_for_friends(current_user_id,new_group_member.user_id)
+                    is_ban_or_suspend,msg = check_for_ban_suspension(new_group_member.user_id)
+                    if(isfriend == False):
+                        raise ValueError("Added Group Members contain Users who are not your friends!")
+                        
+                    
+                    if(is_ban_or_suspend):
+                        raise ValueError("Added Group Members contain Users who are banned or suspended!")
 
-            
-            new_member_public_key = new_group_member.public_key
-            aes_key_encrypted_for_group_member = encrypt_aes_key(AES_KEY,new_member_public_key)
-            new_member = GroupMember.objects.create(
-                group=new_group,
-                user=new_group_member,
-                aes_key_encrypted=aes_key_encrypted_for_group_member,
-            )
-            new_member.save()
- 
-        return redirect("Users:show_groups")
+                    
+                    new_member_public_key = new_group_member.public_key
+                    aes_key_encrypted_for_group_member = encrypt_aes_key(AES_KEY,new_member_public_key)
+                    new_member = GroupMember.objects.create(
+                        group=new_group,
+                        user=new_group_member,
+                        aes_key_encrypted=aes_key_encrypted_for_group_member,
+                    )
+                    new_member.save()
+                return redirect("Users:show_groups")
+
+        except ValueError as ve:
+            CONTEXT = {
+                "message": str(ve),
+                "button_url": "Users:home"
+            }
+            return render(request, "Socialmedia/error.html", CONTEXT)
+        
+        except Exception as e:
+            CONTEXT = {
+                "message": "Backend Error!",
+                "button_url": "Users:home"
+            }
+            return render(request, "Socialmedia/error.html", CONTEXT)
+
+
+        
     else:
         current_user_id = request.session.get("current_user")
         user = User.objects.get(pk=current_user_id)
@@ -945,12 +1213,21 @@ def send_group_message(request,group_id):
     if(request.method == "POST"):
         current_user_id = request.session.get("current_user")
         user = User.objects.get(pk=current_user_id)
-        group = Group.objects.get(pk=group_id)
+        group = get_object_or_404(Group, pk=group_id)
         user_joined_groups = GroupMember.objects.filter(user=user,group=group)
         all_members_in_this_group=GroupMember.objects.filter(group=group)
         if(user_joined_groups.exists()):
             encrypted_msg_data = request.POST.get('encrypted_msg')
             file = request.FILES.get('file')
+
+            if( (not encrypted_msg_data) and (not file)):
+                CONTEXT = {
+                        "heading":"Error",  
+                        "message":"Either an encrypted message or a file must be provided!",
+                        "button_url":"Users:home",
+                    }
+                return render(request, "Socialmedia/error.html", CONTEXT,status=400)
+                
             is_message = False
             is_attachment = False
             if(encrypted_msg_data):
@@ -1005,9 +1282,7 @@ def send_group_message(request,group_id):
 
         current_user_id = request.session.get("current_user")
         user = User.objects.get(pk=current_user_id)
-        group = Group.objects.get(pk=group_id)
-        print(user)
-        print(group)
+        group = get_object_or_404(Group, pk=group_id)
         user_joined_groups = GroupMember.objects.filter(user=user,group=group)
         if(user_joined_groups.exists()):
             old_messages = []
@@ -1043,15 +1318,19 @@ def send_group_message(request,group_id):
             CONTEXT["USERNAME"]=user.username
             return render(request,"Users/group_message.html",CONTEXT)
         else:
-            return HttpResponse("fake request h")
+            CONTEXT = {
+                        "heading":"Error",  
+                        "message":"Wrong Group Access!!!",
+                        "button_url":"Users:home",
+                    }
+            return render(request, "Socialmedia/error.html", CONTEXT,status=400)
     
 
 def view_group(request,group_id):
     current_user_id = request.session.get("current_user")
     user = User.objects.get(pk=current_user_id)
-    group = Group.objects.get(pk=group_id)
-    print(user)
-    print(group)
+    group = get_object_or_404(Group, pk=group_id)
+
     user_joined_groups = GroupMember.objects.filter(user=user,group=group)
     if(user_joined_groups.exists()):
         
@@ -1091,6 +1370,13 @@ def view_group(request,group_id):
     
 def group_attachment(request, group_id, message_id, attachment_id):
     current_user_id = request.session.get("current_user")
+    if not (str(group_id).isdigit() and str(message_id).isdigit() and str(attachment_id).isdigit()):
+        CONTEXT = {
+            "message":"Invalid ID format. IDs must be numeric.",
+            "button_url":"Users:home"
+        }
+        return render(request,"Socialmedia/error.html",CONTEXT)
+        
     group_member = GroupMember.objects.filter(group=group_id,user=current_user_id).first()
     if not group_member:
         CONTEXT = {
@@ -1114,20 +1400,3 @@ def group_attachment(request, group_id, message_id, attachment_id):
     return FileResponse(attachment.file, as_attachment=False)
 
 
-
-# @staff_member_required
-# def reject_user(request, user_id):
-#     user = User.objects.get(id=user_id)
-#     user.is_active = False
-#     user.save()
-#     messages.success(request, "User rejected successfully.")
-#     return render('/admin/auth/user/')
-
-  
-# @staff_member_required
-# def verify_user(request, user_id):
-#     user = User.objects.get(id=user_id)
-#     user.is_active = True
-#     user.save()
-#     messages.success(request, "User verified successfully.")
-#     return render('/admin/auth/user/')
