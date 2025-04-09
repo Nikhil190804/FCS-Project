@@ -96,7 +96,7 @@ class LegitAccessMiddleware:
                     if not User.objects.filter(user_id=current_user_id, is_verified=True).exists():
                         CONTEXT = {
                             "heading":"Not Allowed",  
-                            "message":"You Are Not Verified Yet!, Ask Admin To Verify You",
+                            "message":"You Are Not Verified Yet!, Ask Admin To Verify You via Email: nikhil22322@iiitd.ac.in",
                             "button_url":"Home",
                         }
                         return render(request, "Socialmedia/error.html", CONTEXT,status=404)

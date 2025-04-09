@@ -130,7 +130,7 @@ def otp(request):
                     "message":"Your Session Has Expired!",
                     "button_url":"Home"
                 }
-            return render(request,"SocialMedia/error.html",CONTEXT)
+            return render(request,"Socialmedia/error.html",CONTEXT)
 
         otp = user_data["otp"]
         if entered_otp==otp:  
@@ -192,7 +192,7 @@ def handle_signup_request(request):
                     "message":"Valid Fields Not Found",
                     "button_url":"Home"
                 }
-            return render(request,"SocialMedia/error.html",CONTEXT)
+            return render(request,"Socialmedia/error.html",CONTEXT)
         
         try:
             if len(username) > 30:
@@ -201,7 +201,7 @@ def handle_signup_request(request):
                     "message":"Username cannot be longer than 30 characters.",
                     "button_url":"Home"
                 }
-                return render(request,"SocialMedia/error.html",CONTEXT)
+                return render(request,"Socialmedia/error.html",CONTEXT)
         
             if len(password) > 30:
                 CONTEXT = {
@@ -209,7 +209,7 @@ def handle_signup_request(request):
                     "message":"Password cannot be longer than 30 characters.",
                     "button_url":"Home"
                 }
-                return render(request,"SocialMedia/error.html",CONTEXT)
+                return render(request,"Socialmedia/error.html",CONTEXT)
                 
 
             if not phone_number.isdigit():
@@ -218,7 +218,7 @@ def handle_signup_request(request):
                     "message":"Phone number must contain only digits.",
                     "button_url":"Home"
                 }
-                return render(request,"SocialMedia/error.html",CONTEXT)
+                return render(request,"Socialmedia/error.html",CONTEXT)
 
             if len(phone_number) > 12: 
                 CONTEXT = {
@@ -226,7 +226,7 @@ def handle_signup_request(request):
                     "message":"Phone number cannot be longer than 12 digits.",
                     "button_url":"Home"
                 }
-                return render(request,"SocialMedia/error.html",CONTEXT)
+                return render(request,"Socialmedia/error.html",CONTEXT)
                 
         except Exception as e:
             CONTEXT = {
@@ -234,7 +234,7 @@ def handle_signup_request(request):
                     "message":"Wrong Fields In Request",
                     "button_url":"Home"
                 }
-            return render(request,"SocialMedia/error.html",CONTEXT)
+            return render(request,"Socialmedia/error.html",CONTEXT)
 
         
         hashed_password = make_password(password)
@@ -259,7 +259,7 @@ def handle_signup_request(request):
                     "message":"Failure In Sending Mail",
                     "button_url":"Home"
                 }
-                return render(request,"SocialMedia/error.html",CONTEXT)
+                return render(request,"Socialmedia/error.html",CONTEXT)
             
         else:
             return render(request,"Users/sign-up.html",{"error": "Invalid email format!"})
@@ -296,7 +296,7 @@ def handle_login_request(request):
                     "message":"Wrong Password!",
                     "button_url":"Users:login"
                 }
-                return render(request,"SocialMedia/error.html",CONTEXT)
+                return render(request,"Socialmedia/error.html",CONTEXT)
 
         except User.DoesNotExist:
             CONTEXT = {
@@ -304,7 +304,7 @@ def handle_login_request(request):
                     "message":"User With Given Username Does Not Exist!",
                     "button_url":"Users:login"
             }
-            return render(request,"SocialMedia/error.html",CONTEXT)
+            return render(request,"Socialmedia/error.html",CONTEXT)
 
     else:
         return render(request,"Users/login.html")
@@ -330,7 +330,7 @@ def create_profile(request):
                     "message":"Profile Picture Is Mandatory!",
                     "button_url":"Home"
             }
-            return render(request,"SocialMedia/error.html",CONTEXT)
+            return render(request,"Socialmedia/error.html",CONTEXT)
 
         username = user_data.get("username")
         email = user_data.get("email")
@@ -344,7 +344,7 @@ def create_profile(request):
                     "message":"Session Expired!",
                     "button_url":"Home"
             }
-            return render(request,"SocialMedia/error.html",CONTEXT)
+            return render(request,"Socialmedia/error.html",CONTEXT)
 
         public_key,private_key = generate_public_private_keys()
         try:
@@ -370,7 +370,7 @@ def create_profile(request):
                     "message":"Username, Email, Phone Number Should Be Unique !",
                     "button_url":"Home"
             }
-            return render(request,"SocialMedia/error.html",CONTEXT)
+            return render(request,"Socialmedia/error.html",CONTEXT)
 
         
         request.session.pop("pending_user", None)
@@ -412,7 +412,7 @@ def search_users(request):
                     "message":"Recipient is required!",
                     "button_url":"Users:home"
             }
-            return render(request,"SocialMedia/error.html",CONTEXT)
+            return render(request,"Socialmedia/error.html",CONTEXT)
         
         try:
             to_user = User.objects.get(user_id=to_user_id)
@@ -423,7 +423,7 @@ def search_users(request):
                     "message":"No Recipient Found With That Username !",
                     "button_url":"Users:home"
             }
-            return render(request,"SocialMedia/error.html",CONTEXT)
+            return render(request,"Socialmedia/error.html",CONTEXT)
         
         existing_request = Friendship.objects.filter(
             (Q(from_user=from_user, to_user=to_user) | Q(from_user=to_user, to_user=from_user))
@@ -435,7 +435,7 @@ def search_users(request):
                     "message":"Friend request already exists!",
                     "button_url":"Users:home"
             }
-            return render(request,"SocialMedia/error.html",CONTEXT)
+            return render(request,"Socialmedia/error.html",CONTEXT)
     
         with transaction.atomic():
             friend_request = Friendship.objects.create(from_user=from_user, to_user=to_user)
@@ -505,7 +505,7 @@ def show_friend_requests(request):
                     "message":"No Friend Selected or No Action Selected !",
                     "button_url":"Users:home"
             }
-            return render(request,"SocialMedia/error.html",CONTEXT)
+            return render(request,"Socialmedia/error.html",CONTEXT)
         try:
             friend_request = Friendship.objects.get(id=friends_id)
             if(action=="accept"):
@@ -537,7 +537,7 @@ def show_friend_requests(request):
                     "message":"No Valid Friend Request Found !",
                     "button_url":"Users:home"
             }
-            return render(request,"SocialMedia/error.html",CONTEXT)
+            return render(request,"Socialmedia/error.html",CONTEXT)
 
         
         
@@ -613,7 +613,7 @@ def change_password(request):
                     "message":"Failed To Send Mail !",
                     "button_url":"Home"
             }
-            return render(request,"SocialMedia/error.html",CONTEXT)
+            return render(request,"Socialmedia/error.html",CONTEXT)
 
 
 
