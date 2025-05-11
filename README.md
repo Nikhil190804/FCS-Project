@@ -1,4 +1,4 @@
-# 🔐 Secure Social Media Marketplace
+# 🔐 Secure Social Media & Marketplace
 
 This is a full-stack **social media platform with marketplace features** developed as part of the **Foundations of Computer Security** course at IIIT-Delhi. The application was built to simulate a real-world environment with strong security guarantees across user interactions, messaging, and media sharing.
 
